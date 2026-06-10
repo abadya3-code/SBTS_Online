@@ -1,0 +1,4 @@
+-- Sprint 10.3 — UX repair, final approval profiles, print layout, and user profile preferences.
+-- system_settings.value_json stores new JSON keys:
+-- approvals.profiles, masterData.blindTypes, tags.holeSizePx, uploaded tag/certificate logo data URLs.
+-- Production note: move uploaded image blobs to object storage and keep only secure references here.

@@ -1,0 +1,864 @@
+/*
+Design Philosophy: Industrial Command Center Minimalism.
+This global stylesheet establishes a precise petrol-blue operations interface with calm whitespace, functional depth, readable IBM Plex Sans/Noto Sans Arabic typography, and restrained motion for SBTS Professional Edition.
+*/
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.82rem;
+  --background: oklch(0.978 0.009 247.9);
+  --foreground: oklch(0.205 0.034 250.2);
+  --card: oklch(0.997 0.003 247.8);
+  --card-foreground: oklch(0.205 0.034 250.2);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.205 0.034 250.2);
+  --primary: oklch(0.375 0.112 247.3);
+  --primary-foreground: oklch(0.982 0.006 247.8);
+  --secondary: oklch(0.935 0.019 247.6);
+  --secondary-foreground: oklch(0.275 0.061 247.4);
+  --muted: oklch(0.947 0.012 247.8);
+  --muted-foreground: oklch(0.491 0.037 249.7);
+  --accent: oklch(0.917 0.038 222.6);
+  --accent-foreground: oklch(0.255 0.077 246.8);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.884 0.022 247.4);
+  --input: oklch(0.904 0.019 247.4);
+  --ring: oklch(0.594 0.145 232.6);
+  --chart-1: oklch(0.623 0.214 259.815);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.577 0.245 27.325);
+  --chart-5: oklch(0.491 0.111 247.7);
+  --sidebar: oklch(0.217 0.065 250.4);
+  --sidebar-foreground: oklch(0.947 0.013 248.1);
+  --sidebar-primary: oklch(0.705 0.145 232.6);
+  --sidebar-primary-foreground: oklch(0.149 0.041 250.9);
+  --sidebar-accent: oklch(0.294 0.071 249.6);
+  --sidebar-accent-foreground: oklch(0.982 0.006 247.8);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.705 0.145 232.6);
+}
+
+.dark {
+  --background: oklch(0.145 0.041 250.9);
+  --foreground: oklch(0.925 0.011 248.3);
+  --card: oklch(0.205 0.047 250.1);
+  --card-foreground: oklch(0.925 0.011 248.3);
+  --popover: oklch(0.205 0.047 250.1);
+  --popover-foreground: oklch(0.925 0.011 248.3);
+  --primary: oklch(0.705 0.145 232.6);
+  --primary-foreground: oklch(0.145 0.041 250.9);
+  --secondary: oklch(0.244 0.055 250.3);
+  --secondary-foreground: oklch(0.925 0.011 248.3);
+  --muted: oklch(0.244 0.055 250.3);
+  --muted-foreground: oklch(0.715 0.025 249.3);
+  --accent: oklch(0.294 0.071 249.6);
+  --accent-foreground: oklch(0.982 0.006 247.8);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.705 0.145 232.6);
+  --sidebar: oklch(0.133 0.038 250.8);
+  --sidebar-foreground: oklch(0.925 0.011 248.3);
+  --sidebar-accent: oklch(0.244 0.055 250.3);
+  --sidebar-accent-foreground: oklch(0.982 0.006 247.8);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: oklch(0.705 0.145 232.6);
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "IBM Plex Sans", "Noto Sans Arabic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) { @apply cursor-pointer; }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  .flex { min-height: 0; min-width: 0; }
+  .sbts-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-[0_18px_45px_rgba(15,39,56,0.08)] backdrop-blur;
+  }
+  .sbts-dark-card {
+    @apply rounded-2xl border border-white/10 bg-slate-950/55 shadow-[0_24px_80px_rgba(2,8,23,0.32)] backdrop-blur;
+  }
+  .status-dot { @apply h-2.5 w-2.5 rounded-full ring-4 ring-white/80; }
+  .industrial-grid {
+    background-image:
+      linear-gradient(rgba(23, 76, 126, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23, 76, 126, 0.07) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  @media (min-width: 640px) { .container { padding-left: 1.5rem; padding-right: 1.5rem; } }
+  @media (min-width: 1024px) { .container { padding-left: 2rem; padding-right: 2rem; max-width: 1440px; } }
+}
+
+@layer components {
+  .theme-modern {
+    background: radial-gradient(circle at top left, rgba(14,165,233,0.16), transparent 34rem), linear-gradient(180deg,#f8fafc,#eef5f8);
+  }
+  .theme-classic {
+    background: linear-gradient(180deg,#edf2f7,#ffffff);
+  }
+  .theme-classic .sbts-card { @apply rounded-xl border-slate-300 bg-white shadow-sm; }
+  .theme-classic aside { background: #12385f !important; }
+  .theme-classic header { @apply bg-white; }
+  .theme-sap {
+    background: #f7f7f7;
+  }
+  .theme-sap .sbts-card { @apply rounded-md border-slate-200 bg-white shadow-none; }
+  .theme-sap aside { background: #ffffff !important; color: #1f2937 !important; border-right: 1px solid #d1d5db !important; box-shadow: none !important; }
+  .theme-sap aside a, .theme-sap aside button { color: #1f2937 !important; }
+  .theme-sap header { @apply bg-white shadow-none; }
+  .theme-custom {
+    background: radial-gradient(circle at top left, color-mix(in srgb, var(--sbts-accent) 18%, transparent), transparent 34rem), linear-gradient(180deg,#f8fafc,#eef5f8);
+  }
+  .theme-custom .bg-cyan-600 { background-color: var(--sbts-accent) !important; }
+  .theme-custom .text-cyan-700, .theme-custom .text-cyan-600 { color: var(--sbts-accent) !important; }
+  .theme-custom .border-cyan-200 { border-color: color-mix(in srgb, var(--sbts-accent) 35%, white) !important; }
+  .print-only { display: none; }
+  @media print {
+    .print-only { display: block !important; }
+  }
+}
+
+@layer components {
+  /* Sprint 10.4 theme activation pass: these rules make Theme Template visibly affect the full app shell, not only isolated cards. */
+  .theme-modern {
+    --sbts-theme-sidebar-bg: #0f2f56;
+    --sbts-theme-sidebar-text: #e6f6ff;
+    --sbts-theme-active-bg: #67e8f9;
+    --sbts-theme-active-text: #082f49;
+    --sbts-theme-card-bg: rgba(255,255,255,0.92);
+    --sbts-theme-header-bg: rgba(255,255,255,0.82);
+  }
+  .theme-classic {
+    --sbts-theme-sidebar-bg: #12385f;
+    --sbts-theme-sidebar-text: #ffffff;
+    --sbts-theme-active-bg: #ffffff;
+    --sbts-theme-active-text: #12385f;
+    --sbts-theme-card-bg: #ffffff;
+    --sbts-theme-header-bg: #ffffff;
+  }
+  .theme-sap {
+    --sbts-theme-sidebar-bg: #ffffff;
+    --sbts-theme-sidebar-text: #1f2937;
+    --sbts-theme-active-bg: #e8f0fe;
+    --sbts-theme-active-text: #0a4ea3;
+    --sbts-theme-card-bg: #ffffff;
+    --sbts-theme-header-bg: #ffffff;
+  }
+  .theme-custom {
+    --sbts-theme-sidebar-bg: color-mix(in srgb, var(--sbts-accent) 34%, #0f172a);
+    --sbts-theme-sidebar-text: #ffffff;
+    --sbts-theme-active-bg: color-mix(in srgb, var(--sbts-accent) 82%, white);
+    --sbts-theme-active-text: #0f172a;
+    --sbts-theme-card-bg: rgba(255,255,255,0.94);
+    --sbts-theme-header-bg: rgba(255,255,255,0.86);
+  }
+  .theme-modern aside,
+  .theme-classic aside,
+  .theme-sap aside,
+  .theme-custom aside,
+  .theme-preview-sidebar {
+    background: var(--sbts-theme-sidebar-bg) !important;
+    color: var(--sbts-theme-sidebar-text) !important;
+  }
+  .theme-modern header,
+  .theme-classic header,
+  .theme-sap header,
+  .theme-custom header {
+    background: var(--sbts-theme-header-bg) !important;
+  }
+  .theme-modern .sbts-card,
+  .theme-classic .sbts-card,
+  .theme-sap .sbts-card,
+  .theme-custom .sbts-card {
+    background: var(--sbts-theme-card-bg) !important;
+  }
+  .theme-sap {
+    --radius: 0.38rem;
+  }
+  .theme-sap .rounded-2xl,
+  .theme-sap .rounded-3xl,
+  .theme-sap .rounded-\[2rem\] {
+    border-radius: 0.45rem !important;
+  }
+  .theme-sap .shadow-lg,
+  .theme-sap .shadow-sm,
+  .theme-sap .shadow-md,
+  .theme-sap .shadow-\[20px_0_60px_rgba\(15\,23\,42\,0\.22\)\],
+  .theme-sap .shadow-\[0_18px_45px_rgba\(15\,39\,56\,0\.08\)\] {
+    box-shadow: none !important;
+  }
+  .theme-classic .bg-cyan-300,
+  .theme-custom .bg-cyan-300 {
+    background-color: var(--sbts-theme-active-bg) !important;
+    color: var(--sbts-theme-active-text) !important;
+  }
+  .theme-sap .bg-cyan-300 {
+    background-color: var(--sbts-theme-active-bg) !important;
+    color: var(--sbts-theme-active-text) !important;
+  }
+  .theme-custom .bg-cyan-600,
+  .theme-custom .bg-slate-950 {
+    background-color: var(--sbts-accent) !important;
+  }
+  .theme-custom .text-cyan-700,
+  .theme-custom .text-cyan-600,
+  .theme-custom .text-cyan-200,
+  .theme-custom .text-cyan-100 {
+    color: var(--sbts-accent) !important;
+  }
+  .theme-custom .ring-cyan-100,
+  .theme-custom .focus\:ring-cyan-100:focus {
+    --tw-ring-color: color-mix(in srgb, var(--sbts-accent) 20%, white) !important;
+  }
+  .theme-custom .border-cyan-100,
+  .theme-custom .border-cyan-200,
+  .theme-custom .focus\:border-cyan-400:focus {
+    border-color: color-mix(in srgb, var(--sbts-accent) 35%, white) !important;
+  }
+}
+
+@layer components {
+  /* Sprint 10.4.1 page-level theme system: themes now reshape the full application, not only the sidebar. */
+  .theme-modern,
+  .theme-classic,
+  .theme-sap,
+  .theme-custom {
+    transition: background 180ms ease, color 180ms ease;
+  }
+
+  .theme-modern {
+    --sbts-page-bg: radial-gradient(circle at top left, rgba(103,232,249,0.22), transparent 34rem), linear-gradient(180deg,#f8fafc,#eef5f8);
+    --sbts-panel-bg: rgba(255,255,255,0.92);
+    --sbts-panel-border: rgba(203,213,225,0.78);
+    --sbts-panel-shadow: 0 18px 45px rgba(15,39,56,0.08);
+    --sbts-header-glow: linear-gradient(270deg, rgba(207,250,254,0.82), transparent);
+    --sbts-radius-page: 1.75rem;
+  }
+  .theme-classic {
+    --sbts-page-bg: linear-gradient(180deg,#eaf1f8 0%, #f8fafc 42%, #ffffff 100%);
+    --sbts-panel-bg: #ffffff;
+    --sbts-panel-border: #cbd5e1;
+    --sbts-panel-shadow: 0 8px 18px rgba(18,56,95,0.10);
+    --sbts-header-glow: linear-gradient(270deg, rgba(18,56,95,0.10), transparent);
+    --sbts-radius-page: 0.9rem;
+    --sbts-theme-sidebar-bg: #12385f;
+    --sbts-theme-sidebar-text: #ffffff;
+    --sbts-theme-active-bg: #ffffff;
+    --sbts-theme-active-text: #12385f;
+  }
+  .theme-sap {
+    --sbts-page-bg: #f3f4f6;
+    --sbts-panel-bg: #ffffff;
+    --sbts-panel-border: #d6d9de;
+    --sbts-panel-shadow: none;
+    --sbts-header-glow: transparent;
+    --sbts-radius-page: 0.42rem;
+    --sbts-theme-sidebar-bg: #ffffff;
+    --sbts-theme-sidebar-text: #1f2937;
+    --sbts-theme-active-bg: #eaf2ff;
+    --sbts-theme-active-text: #0a4ea3;
+  }
+  .theme-custom {
+    --sbts-page-bg: radial-gradient(circle at top left, color-mix(in srgb, var(--sbts-accent) 18%, transparent), transparent 34rem), linear-gradient(180deg,#f8fafc,#eef5f8);
+    --sbts-panel-bg: rgba(255,255,255,0.94);
+    --sbts-panel-border: color-mix(in srgb, var(--sbts-accent) 18%, #cbd5e1);
+    --sbts-panel-shadow: 0 18px 45px color-mix(in srgb, var(--sbts-accent) 11%, rgba(15,39,56,0.08));
+    --sbts-header-glow: linear-gradient(270deg, color-mix(in srgb, var(--sbts-accent) 13%, transparent), transparent);
+    --sbts-radius-page: 1.75rem;
+  }
+
+  .theme-modern,
+  .theme-classic,
+  .theme-sap,
+  .theme-custom { background: var(--sbts-page-bg) !important; }
+
+  .sbts-sidebar {
+    background: var(--sbts-theme-sidebar-bg) !important;
+    color: var(--sbts-theme-sidebar-text) !important;
+  }
+  .sbts-topbar {
+    background: var(--sbts-theme-header-bg) !important;
+  }
+  .sbts-page-header,
+  .sbts-card,
+  .theme-modern .rounded-\[1\.75rem\].border,
+  .theme-classic .rounded-\[1\.75rem\].border,
+  .theme-sap .rounded-\[1\.75rem\].border,
+  .theme-custom .rounded-\[1\.75rem\].border {
+    background: var(--sbts-panel-bg) !important;
+    border-color: var(--sbts-panel-border) !important;
+    box-shadow: var(--sbts-panel-shadow) !important;
+    border-radius: var(--sbts-radius-page) !important;
+  }
+  .sbts-page-header-glow { background: var(--sbts-header-glow) !important; }
+  .sbts-nav-link-active {
+    background: var(--sbts-theme-active-bg) !important;
+    color: var(--sbts-theme-active-text) !important;
+  }
+
+  .theme-sap .sbts-sidebar {
+    border-right: 1px solid #d6d9de !important;
+    box-shadow: none !important;
+  }
+  .theme-sap .sbts-sidebar .text-white,
+  .theme-sap .sbts-sidebar .text-slate-300,
+  .theme-sap .sbts-sidebar .text-cyan-100,
+  .theme-sap .sbts-sidebar .text-cyan-200 {
+    color: #1f2937 !important;
+  }
+  .theme-sap .sbts-sidebar .bg-white\/5,
+  .theme-sap .sbts-sidebar-profile {
+    background: #f8fafc !important;
+    border-color: #d6d9de !important;
+    color: #1f2937 !important;
+  }
+  .theme-sap .sbts-main { max-width: 100% !important; }
+  .theme-sap button,
+  .theme-sap a,
+  .theme-sap input,
+  .theme-sap select,
+  .theme-sap textarea,
+  .theme-sap .rounded-2xl,
+  .theme-sap .rounded-3xl,
+  .theme-sap .rounded-\[2rem\] {
+    border-radius: 0.42rem !important;
+  }
+  .theme-sap .shadow-lg,
+  .theme-sap .shadow-md,
+  .theme-sap .shadow-sm,
+  .theme-sap [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+  .theme-sap .sbts-eyebrow {
+    background: #eaf2ff !important;
+    color: #0a4ea3 !important;
+    border-radius: 0.32rem !important;
+  }
+
+  .theme-classic .sbts-page-header {
+    border-top: 4px solid #12385f !important;
+  }
+  .theme-classic .sbts-card {
+    border-top: 3px solid rgba(18,56,95,0.24) !important;
+  }
+  .theme-classic .sbts-eyebrow {
+    background: #e6f0fa !important;
+    color: #12385f !important;
+  }
+  .theme-classic .bg-cyan-600,
+  .theme-classic .bg-slate-950 {
+    background-color: #12385f !important;
+  }
+
+  .theme-custom .sbts-nav-link-active,
+  .theme-custom .bg-cyan-600,
+  .theme-custom .bg-cyan-300 {
+    background: var(--sbts-accent) !important;
+  }
+  .theme-custom .sbts-eyebrow {
+    background: color-mix(in srgb, var(--sbts-accent) 12%, white) !important;
+    color: color-mix(in srgb, var(--sbts-accent) 70%, #0f172a) !important;
+  }
+
+  .theme-modern input,
+  .theme-classic input,
+  .theme-sap input,
+  .theme-custom input,
+  .theme-modern select,
+  .theme-classic select,
+  .theme-sap select,
+  .theme-custom select,
+  .theme-modern textarea,
+  .theme-classic textarea,
+  .theme-sap textarea,
+  .theme-custom textarea {
+    background: #ffffff;
+  }
+}
+
+@layer components {
+  /* Sprint 10.4.2 — true Classic SBTS shell. This intentionally reshapes the layout to match the original SBTS patch47 classic dashboard pattern. */
+  .theme-classic {
+    --classic-primary: #174c7e;
+    --classic-primary-strong: #0f3154;
+    --classic-soft: #e5edf7;
+    --classic-border: #e5e7eb;
+    --classic-text: #111827;
+    --classic-muted: #6b7280;
+    --classic-radius-lg: 18px;
+    --classic-shadow-card: 0 8px 20px rgba(15, 23, 42, 0.08);
+    --classic-page-bg: linear-gradient(to bottom, #f0f4ff, #ffffff);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .classic-shell {
+    background: var(--classic-page-bg);
+    color: var(--classic-text);
+  }
+
+  .classic-topbar {
+    height: 110px;
+    background: var(--classic-primary) !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    color: #12385f;
+    border-bottom: 4px solid rgba(255,255,255,0.12);
+  }
+
+  .classic-topbar-left,
+  .classic-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 270px;
+  }
+
+  .classic-topbar-right { justify-content: flex-end; }
+
+  .classic-logo-circle,
+  .classic-company-mark {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.96);
+    color: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    box-shadow: 0 10px 24px rgba(8, 31, 54, 0.18);
+    padding: 8px;
+    overflow: hidden;
+  }
+  .classic-logo-circle img,
+  .classic-company-mark img { width: 100%; height: 100%; object-fit: contain; }
+
+  .classic-brand-title { font-weight: 900; font-size: 18px; line-height: 1.08; }
+  .classic-brand-sub { font-size: 12px; color: rgba(255,255,255,0.84); margin-top: 4px; }
+  .classic-topbar-center { text-align: center; flex: 1; }
+  .classic-site-title { font-weight: 900; font-size: 18px; }
+  .classic-site-sub { margin-top: 6px; font-size: 13px; color: rgba(255,255,255,0.86); }
+  .classic-right-text { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+  .classic-right-text b { font-size: 14px; }
+  .classic-right-text span { font-size: 11px; color: rgba(255,255,255,0.82); max-width: 180px; text-align: right; }
+  .classic-top-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: #fff;
+    color: var(--classic-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .classic-body-row { display: flex; min-height: calc(100vh - 110px); }
+  .classic-sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--classic-primary) !important;
+    color: #f9fafb !important;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 8px;
+    border-right: 3px solid rgba(255,255,255,0.12);
+  }
+
+  .classic-user-box {
+    width: 100%;
+    min-height: 58px;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .classic-user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 0, #dbeafe, #60a5fa);
+    color: #0f3154;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.22);
+  }
+  .classic-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .classic-user-name { font-weight: 900; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .classic-user-role { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.82); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .classic-menu { margin-top: 16px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; flex: 1; padding-right: 2px; }
+  .classic-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 10px;
+    border-radius: 12px;
+    color: rgba(255,255,255,0.92) !important;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 12px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .classic-menu-item:hover { background: rgba(255,255,255,0.12); color: #fff !important; }
+  .classic-menu-item.active { background: #fff; color: var(--classic-primary) !important; }
+  .classic-sidebar-bottom { padding-top: 12px; }
+  .classic-version { text-align: center; font-size: 11px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.78); margin-bottom: 6px; }
+  .classic-date { text-align: center; font-size: 15px; font-weight: 900; margin-bottom: 10px; color: #fff; }
+  .classic-logout {
+    width: 100%;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.16);
+    color: #fff;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .classic-content-wrap { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+  .classic-mobile-actions { display: none; }
+  .classic-main {
+    width: 100%;
+    max-width: none;
+    padding: 16px 18px 28px;
+  }
+
+  .theme-classic .container { max-width: none !important; padding-left: 0 !important; padding-right: 0 !important; }
+  .theme-classic .sbts-main { padding: 0 !important; }
+  .theme-classic .sbts-card,
+  .theme-classic [class*="rounded-3xl"],
+  .theme-classic [class*="rounded-2xl"] {
+    border-radius: var(--classic-radius-lg) !important;
+  }
+  .theme-classic .sbts-card,
+  .theme-classic .bg-white,
+  .theme-classic .bg-white\/90,
+  .theme-classic .bg-white\/80 {
+    background: #fff !important;
+  }
+  .theme-classic .shadow-lg,
+  .theme-classic .shadow-md,
+  .theme-classic .shadow-sm,
+  .theme-classic .shadow-\[0_18px_45px_rgba\(15\,39\,56\,0\.08\)\] {
+    box-shadow: var(--classic-shadow-card) !important;
+  }
+  .theme-classic h1,
+  .theme-classic h2,
+  .theme-classic h3,
+  .theme-classic .text-slate-950 { color: #111827 !important; }
+  .theme-classic .text-slate-500,
+  .theme-classic .text-slate-600 { color: #6b7280 !important; }
+  .theme-classic .bg-cyan-300,
+  .theme-classic .bg-cyan-600,
+  .theme-classic .bg-slate-950 {
+    background: var(--classic-primary) !important;
+    color: #fff !important;
+  }
+  .theme-classic .text-cyan-600,
+  .theme-classic .text-cyan-700,
+  .theme-classic .text-blue-600 { color: #174c7e !important; }
+  .theme-classic .border-slate-200,
+  .theme-classic .border-slate-200\/80 { border-color: var(--classic-border) !important; }
+  .theme-classic table thead,
+  .theme-classic .bg-slate-50 { background: #f3f4ff !important; }
+  .theme-classic input,
+  .theme-classic select,
+  .theme-classic textarea {
+    border-radius: 12px !important;
+    border-color: var(--classic-border) !important;
+    background: #fff !important;
+  }
+  .theme-classic button,
+  .theme-classic a { transition-duration: 140ms; }
+
+  .sbts-sidebar nav,
+  .classic-menu { scrollbar-width: none; }
+  .sbts-sidebar nav::-webkit-scrollbar,
+  .classic-menu::-webkit-scrollbar { display: none; }
+
+  @media (max-width: 900px) {
+    .classic-topbar { height: auto; min-height: 82px; flex-wrap: wrap; gap: 10px; }
+    .classic-topbar-left,
+    .classic-topbar-right { min-width: 0; }
+    .classic-topbar-center { order: 3; width: 100%; flex-basis: 100%; }
+    .classic-body-row { display: block; }
+    .classic-sidebar { display: none; }
+    .classic-mobile-actions { display: flex; gap: 8px; padding: 12px 12px 0; overflow-x: auto; }
+    .classic-chip { display: inline-flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 999px; background: white; color: var(--classic-primary); border: 1px solid var(--classic-border); font-weight: 800; font-size: 12px; }
+    .classic-main { padding: 12px; }
+  }
+}
+
+@layer components {
+  /* Sprint 10.4.4 — Command Pro Page Optimization.
+     A refined engineer-grade command theme. The rail was removed, the navigation was enlarged,
+     and all styling stays isolated under .theme-command-pro so other themes remain untouched. */
+  .theme-command-pro {
+    --command-bg-0: #eaf3f5;
+    --command-bg-1: #f6fafb;
+    --command-bg-2: #dcecef;
+    --command-sidebar: #102f3f;
+    --command-sidebar-2: #14394a;
+    --command-panel: #123949;
+    --command-panel-soft: rgba(18, 61, 76, 0.82);
+    --command-card: rgba(255, 255, 255, 0.96);
+    --command-card-2: #ffffff;
+    --command-line: rgba(14, 165, 164, 0.18);
+    --command-cyan: #0ea5a4;
+    --command-cyan-soft: rgba(14, 165, 164, 0.12);
+    --command-green: #22c55e;
+    --command-amber: #f59e0b;
+    --command-red: #dc2626;
+    --command-text: #e8fbfb;
+    --command-muted: #b7d1d7;
+    --command-radius: 24px;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(14, 165, 164, 0.11), transparent 34rem),
+      radial-gradient(circle at 90% 8%, rgba(15, 52, 66, 0.08), transparent 28rem),
+      linear-gradient(135deg, var(--command-bg-0), var(--command-bg-1));
+    color: var(--command-text);
+    min-height: 100vh;
+  }
+
+  .command-shell {
+    display: flex;
+    background-image:
+      linear-gradient(rgba(14,165,164,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(14,165,164,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  /* Old mini rail intentionally hidden. Quick actions now live in the topbar/sidebar footer. */
+  .command-rail { display: none !important; }
+
+  .command-sidebar {
+    width: 306px;
+    min-height: 100vh;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    flex-direction: column;
+    padding: 14px 14px;
+    background:
+      linear-gradient(180deg, rgba(15,52,66,0.98), rgba(10,34,44,0.98)),
+      var(--command-sidebar);
+    border-right: 1px solid rgba(14, 165, 164, 0.18);
+    box-shadow: 22px 0 70px rgba(15, 52, 66, 0.18);
+    backdrop-filter: blur(16px);
+  }
+  .command-sidebar-head {
+    width: 100%;
+    border: 1px solid rgba(151, 220, 222, 0.20);
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(14,165,164,0.06));
+    border-radius: 22px;
+    padding: 12px;
+    color: #fff;
+    transition: .16s ease;
+  }
+  .command-sidebar-head:hover { border-color: rgba(151,220,222,0.42); background: linear-gradient(145deg, rgba(255,255,255,0.12), rgba(14,165,164,0.10)); transform: translateY(-1px); }
+  .command-brand-row { display:flex; align-items:center; gap:11px; }
+  .command-brand-logo {
+    width: 64px;
+    height: 64px;
+    flex: 0 0 64px;
+    border-radius: 18px;
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    color:#04232b;
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing:.04em;
+    background: rgba(255,255,255,0.98);
+    padding: 8px;
+    box-shadow: 0 12px 28px rgba(14,165,164,0.18);
+  }
+  .command-brand-logo img { width:100%; height:100%; object-fit:contain; }
+   .command-company-name { color: #96f2ee; font-size: 17px; line-height: 1.05; font-weight: 950; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .command-system-kicker { color: #8ee7e5; text-transform: uppercase; letter-spacing: .17em; font-size: 10px; font-weight: 950; }
+   .command-system-title { margin-top: 4px; font-size: 13px; line-height: 1.12; font-weight: 900; color: #fff; text-transform: uppercase; letter-spacing: 0.16em; }
+   .command-system-sub { margin-top: 5px; color: var(--command-muted); font-size: 11px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+   .command-operator-card { margin-top: 10px; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px;
+    border-radius: 20px; border: 1px solid rgba(34,197,94,0.22); background: linear-gradient(145deg, rgba(34,197,94,0.13), rgba(14,165,164,0.09)); color: #fff; }
+  .command-operator-card:hover { border-color: rgba(34,197,94,0.38); background: linear-gradient(145deg, rgba(34,197,94,0.17), rgba(14,165,164,0.12)); }
+  .command-operator-avatar { width: 43px; height: 43px; border-radius: 15px; display:grid; place-items:center; overflow:hidden; font-weight:950; color:#04232b; background: linear-gradient(135deg, #dffbff, var(--command-cyan)); }
+  .command-operator-avatar img { width:100%; height:100%; object-fit:cover; }
+  .command-operator-name { font-size: 13px; font-weight: 950; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .command-operator-meta { color: var(--command-muted); font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .command-operator-status { margin-top: 3px; display:flex; align-items:center; gap:6px; color:#baf7c9; font-size:10px; font-weight:900; text-transform: uppercase; letter-spacing: .08em; }
+  .command-operator-status span { width:7px; height:7px; border-radius:999px; background:var(--command-green); box-shadow:0 0 0 4px rgba(34,197,94,0.12); }
+
+  .command-nav { min-height: 0; overflow: hidden; flex: 1; padding: 10px 0 9px; display: flex; flex-direction: column; gap: 9px; scrollbar-width: none; }
+  .command-nav::-webkit-scrollbar { display: none; }
+  .command-nav-label { color: #91d9dc; font-size: 9px; letter-spacing: .16em; text-transform: uppercase; font-weight: 950; margin: 0 10px 5px; }
+  .command-nav-link { display:flex; align-items:center; gap:11px; min-height: 37px; padding: 9px 12px; border-radius: 15px; color:#d8f1f3; text-decoration:none; font-size: 12.5px; font-weight: 900; transition:.14s ease; border:1px solid transparent; }
+  .command-nav-link:hover { background: rgba(255,255,255,0.08); border-color: rgba(151,220,222,0.16); color:#fff; }
+  .command-nav-link.active { background: linear-gradient(90deg, #13b8aa, #21c978); color:#04232b; box-shadow: 0 14px 34px rgba(14,165,164,0.24); }
+  .command-sidebar-foot { border:1px solid rgba(151,220,222,0.14); background: rgba(255,255,255,0.055); border-radius: 18px; padding: 10px; display:grid; gap:10px; }
+  .command-sidebar-foot-compact { grid-template-columns: 1fr 1fr; }
+  .command-foot-label { color: var(--command-muted); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing:.12em; }
+  .command-foot-value { color: #fff; font-size: 13px; font-weight: 950; }
+  .command-foot-divider { height:1px; background: rgba(151,220,222,0.14); }
+   .command-foot-actions { display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .command-foot-action { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:36px; border-radius:13px; border:1px solid rgba(151,220,222,0.16); background:rgba(255,255,255,0.07); color:#dffbff; font-size:11px; font-weight:950; }
+  .command-version-block { display:grid; gap:4px; }
+  .command-foot-action.danger { color:#ffe2e2; }
+  .command-foot-action:hover { background:rgba(14,165,164,0.14); color:#fff; }
+
+  .command-workspace { min-width: 0; flex: 1; display:flex; flex-direction:column; }
+  .command-topbar { position: sticky; top: 0; z-index: 35; min-height: 74px; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding: 12px 24px; background: rgba(255, 255, 255, 0.84); border-bottom:1px solid rgba(14, 165, 164, 0.16); backdrop-filter: blur(18px); box-shadow: 0 12px 34px rgba(15,52,66,0.08); }
+  .command-page-kicker { color: #0a7f7d; font-size: 11px; font-weight: 950; letter-spacing:.16em; text-transform:uppercase; }
+  .command-page-title { margin-top:4px; color:#102a36; font-size: 20px; font-weight: 950; }
+  .command-status-strip { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .command-status-pill, .command-status-icon { display:inline-flex; align-items:center; gap:7px; border:1px solid rgba(14,165,164,0.16); background:#fff; color:#244655; border-radius:999px; padding:9px 12px; font-size:11px; font-weight:900; box-shadow:0 8px 22px rgba(15,52,66,0.07); }
+  .command-status-icon { width: 40px; height:40px; justify-content:center; padding:0; position:relative; }
+  .command-status-live span { width:7px; height:7px; border-radius:999px; background:var(--command-green); box-shadow:0 0 0 4px rgba(34,197,94,0.14); }
+  .command-status-alert::after { content:""; position:absolute; right:9px; top:9px; width:8px; height:8px; border-radius:999px; background: var(--command-green); box-shadow:0 0 0 3px rgba(34,197,94,0.14); }
+  .command-main { min-width:0; flex:1; padding: 24px; color:#0f172a; }
+  .command-mobile-nav { padding: 12px; display:flex; gap:8px; overflow-x:auto; background:rgba(15,52,66,0.94); border-bottom:1px solid var(--command-line); }
+  .command-mobile-chip { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; border-radius:999px; padding:9px 12px; color:#dffbff; background:rgba(255,255,255,0.06); font-size:12px; font-weight:900; }
+  .command-mobile-chip.active { background:var(--command-cyan); color:#031016; }
+
+
+  @media (max-height: 820px) and (min-width: 1024px) {
+    .command-sidebar { padding: 10px 12px; }
+    .command-sidebar-head { padding: 10px; border-radius: 18px; }
+    .command-brand-logo { width: 52px; height: 52px; flex-basis: 52px; border-radius: 16px; }
+    .command-company-name { font-size: 15px; }
+    .command-system-title { font-size: 12px; margin-top: 2px; }
+    .command-system-sub { font-size: 10px; margin-top: 2px; }
+    .command-operator-card { margin-top: 8px; padding: 8px; border-radius: 17px; }
+    .command-operator-avatar { width: 38px; height: 38px; border-radius: 13px; }
+    .command-nav { padding: 8px 0; gap: 6px; }
+    .command-nav-label { margin-bottom: 3px; font-size: 8.5px; }
+    .command-nav-link { min-height: 33px; padding: 7px 10px; font-size: 12px; border-radius: 13px; }
+    .command-sidebar-foot { padding: 7px; }
+    .command-foot-action { min-height: 31px; font-size: 10.5px; }
+  }
+
+  /* Page/component reshaping inside Command Pro. Uses broad but isolated selectors so existing pages gain the command style without breaking other themes. */
+  .theme-command-pro .container { max-width: 1720px !important; padding-left: 0 !important; padding-right: 0 !important; }
+  .theme-command-pro .sbts-page-header,
+  .theme-command-pro .sbts-card,
+  .theme-command-pro .rounded-\[1\.75rem\].border,
+  .theme-command-pro .rounded-\[2rem\].border,
+  .theme-command-pro .rounded-3xl.border,
+  .theme-command-pro .rounded-2xl.border {
+    background: var(--command-card) !important;
+    border-color: rgba(15,52,66, 0.12) !important;
+    border-radius: var(--command-radius) !important;
+    box-shadow: 0 18px 44px rgba(15, 52, 66, 0.10), 0 1px 0 rgba(255,255,255,0.75) inset !important;
+  }
+  .theme-command-pro .sbts-page-header { position: relative; overflow:hidden; border-left: 5px solid var(--command-cyan) !important; }
+  .theme-command-pro .sbts-page-header::after { content:""; position:absolute; inset:0; pointer-events:none; background: linear-gradient(90deg, rgba(14,165,164,0.10), transparent 35%, rgba(34,197,94,0.06)); }
+  .theme-command-pro .sbts-eyebrow { background: rgba(14,165,164,0.10) !important; color: #0a6f72 !important; border:1px solid rgba(14,165,164,0.18); }
+  .theme-command-pro h1,
+  .theme-command-pro h2,
+  .theme-command-pro h3,
+  .theme-command-pro .text-slate-950 { color: #102a36 !important; }
+  .theme-command-pro .text-cyan-600,
+  .theme-command-pro .text-cyan-700,
+  .theme-command-pro .text-blue-600 { color: #0a7f7d !important; }
+  .theme-command-pro .bg-cyan-600,
+  .theme-command-pro .bg-slate-950 { background: linear-gradient(135deg, #0f3442, #0a7f7d) !important; }
+  .theme-command-pro .bg-cyan-300 { background: var(--command-cyan) !important; color:#031016 !important; }
+  .theme-command-pro input,
+  .theme-command-pro select,
+  .theme-command-pro textarea { border-radius: 16px !important; background:#fff !important; border-color: rgba(15,52,66,0.16) !important; }
+  .theme-command-pro table thead,
+  .theme-command-pro .bg-slate-50 { background: linear-gradient(90deg, rgba(14,165,164,0.08), rgba(34,197,94,0.04)) !important; }
+  .theme-command-pro .shadow-lg,
+  .theme-command-pro .shadow-md,
+  .theme-command-pro .shadow-sm { box-shadow: 0 16px 40px rgba(15,52,66,0.10) !important; }
+
+  @media (max-width: 1023px) {
+    .command-shell { display:block; }
+    .command-main { padding: 16px; }
+    .command-topbar { padding: 14px 16px; align-items:flex-start; flex-direction:column; }
+    .command-status-strip { justify-content:flex-start; }
+  }
+}

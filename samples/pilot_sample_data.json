@@ -1,0 +1,125 @@
+{
+  "version": "15.0.0",
+  "purpose": "Controlled SBTS pilot sample dataset",
+  "area": {
+    "code": "PILOT-A1",
+    "name": "Pilot Area 1",
+    "plant": "Shedgum Gas Plant",
+    "description": "Controlled pilot area for SBTS validation"
+  },
+  "project": {
+    "projectNo": "SBTS-PILOT-001",
+    "name": "SBTS Controlled Pilot Project",
+    "maintenanceReason": "Pilot validation for blind isolation workflow",
+    "targetDate": "2026-12-31"
+  },
+  "blinds": [
+    {
+      "blindNo": "BL-PILOT-001",
+      "tagNo": "SBTS-TAG-001",
+      "lineNo": "D-101",
+      "size": "6 inch",
+      "rating": "300#",
+      "blindType": "Slip Blind",
+      "priority": "High",
+      "locationNote": "Pilot validation slip blind"
+    },
+    {
+      "blindNo": "BL-PILOT-002",
+      "tagNo": "SBTS-TAG-002",
+      "lineNo": "D-102",
+      "size": "4 inch",
+      "rating": "150#",
+      "blindType": "Isolation Blind",
+      "priority": "Normal",
+      "locationNote": "Pilot validation isolation blind"
+    },
+    {
+      "blindNo": "BL-PILOT-003",
+      "tagNo": "SBTS-TAG-003",
+      "lineNo": "D-103",
+      "size": "8 inch",
+      "rating": "300#",
+      "blindType": "Drop Spool",
+      "priority": "High",
+      "locationNote": "Pilot validation drop spool"
+    },
+    {
+      "blindNo": "BL-PILOT-004",
+      "tagNo": "SBTS-TAG-004",
+      "lineNo": "D-104",
+      "size": "3 inch",
+      "rating": "150#",
+      "blindType": "Spectacle Blind",
+      "priority": "Normal",
+      "locationNote": "Pilot validation spectacle blind"
+    },
+    {
+      "blindNo": "BL-PILOT-005",
+      "tagNo": "SBTS-TAG-005",
+      "lineNo": "D-105",
+      "size": "10 inch",
+      "rating": "600#",
+      "blindType": "Slip Blind",
+      "priority": "Critical",
+      "locationNote": "Critical pilot lock/certificate test"
+    }
+  ],
+  "phaseAssignments": [
+    {
+      "phaseKey": "broken",
+      "roleKey": "coordinator",
+      "authorizedBadges": [
+        "admin",
+        "100245"
+      ]
+    },
+    {
+      "phaseKey": "assembly",
+      "roleKey": "technician",
+      "authorizedBadges": [
+        "TECH-211"
+      ]
+    },
+    {
+      "phaseKey": "tightTorque",
+      "roleKey": "tiEngineer",
+      "authorizedBadges": [
+        "TI-001",
+        "TORQUE-LEAD"
+      ]
+    },
+    {
+      "phaseKey": "finalTight",
+      "roleKey": "qc",
+      "authorizedBadges": [
+        "QC-01"
+      ]
+    },
+    {
+      "phaseKey": "inspectionReady",
+      "roleKey": "inspection",
+      "authorizedBadges": [
+        "INSP-07"
+      ]
+    }
+  ],
+  "expectedApprovalProfile": {
+    "Slip Blind": [
+      "Operation Foreman",
+      "Project Engineer",
+      "Inspection Unit",
+      "Metal Foreman"
+    ],
+    "Drop Spool": [
+      "Operation Foreman",
+      "Project Engineer",
+      "Inspection Unit"
+    ],
+    "Isolation Blind": [
+      "Operation Foreman",
+      "Project Engineer",
+      "Inspection Unit"
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+blindNo,tagNo,lineNo,size,rating,blindType,priority,locationNote
+BL-PILOT-001,SBTS-TAG-001,D-101,6 inch,300#,Slip Blind,High,Pilot validation slip blind
+BL-PILOT-002,SBTS-TAG-002,D-102,4 inch,150#,Isolation Blind,Normal,Pilot validation isolation blind
+BL-PILOT-003,SBTS-TAG-003,D-103,8 inch,300#,Drop Spool,High,Pilot validation drop spool
+BL-PILOT-004,SBTS-TAG-004,D-104,3 inch,150#,Spectacle Blind,Normal,Pilot validation spectacle blind
+BL-PILOT-005,SBTS-TAG-005,D-105,10 inch,600#,Slip Blind,Critical,Critical pilot lock/certificate test

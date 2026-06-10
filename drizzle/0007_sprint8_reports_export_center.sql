@@ -1,0 +1,4 @@
+-- Sprint 8 — Reports & Export Center
+-- No dedicated table is required for the first implementation.
+-- Export activity is recorded through the existing audit_trail table and notifications table.
+-- This migration marker documents the sprint boundary for deployment history.
