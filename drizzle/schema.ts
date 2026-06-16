@@ -419,6 +419,7 @@ export const productionPersistenceEvents = mysqlTable("production_persistence_ev
   eventType: varchar("eventType", { length: 100 }).notNull(),
   domain: varchar("domain", { length: 100 }).notNull(),
   status: varchar("status", { length: 40 }).default("Info").notNull(),
+  priority: varchar("priority", { length: 32 }).default("normal").notNull(),
   summary: text("summary").notNull(),
   metadataJson: text("metadataJson"),
   actorOpenId: varchar("actorOpenId", { length: 64 }),
