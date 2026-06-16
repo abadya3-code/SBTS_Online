@@ -4681,6 +4681,13 @@ function mergeSystemSettings(input?: Partial<SaveSystemSettingsInput>): SystemSe
   };
 }
 
+const SYSTEM_SETTINGS_CACHE_TTL_MS = Number(process.env.SBTS_SETTINGS_CACHE_TTL_MS ?? 5 * 60 * 1000);
+let systemSettingsCache: { value: SystemSettingsModel; expiresAt: number } | null = null;
+
+function clearSystemSettingsCache() {
+  systemSettingsCache = null;
+}
+
 function parseSystemSettingsPayload(raw: string | null | undefined): SaveSystemSettingsInput | undefined {
   if (!raw) return undefined;
   try {
@@ -4691,6 +4698,10 @@ function parseSystemSettingsPayload(raw: string | null | undefined): SaveSystemS
 }
 
 export async function getSystemSettings(): Promise<SystemSettingsModel> {
+  if (systemSettingsCache && Date.now() < systemSettingsCache.expiresAt) {
+    return systemSettingsCache.value;
+  }
+
   const db = await getDb();
   if (!db) return demoSystemSettings;
   const rows = await db.select().from(systemSettings).where(eq(systemSettings.key, "global")).limit(1);
@@ -4701,13 +4712,16 @@ export async function getSystemSettings(): Promise<SystemSettingsModel> {
       valueJson: JSON.stringify(defaultSystemSettings),
       updatedByOpenId: "system-default",
     });
+    systemSettingsCache = { value: defaultSystemSettings, expiresAt: Date.now() + SYSTEM_SETTINGS_CACHE_TTL_MS };
     return defaultSystemSettings;
   }
-  return {
+  const value = {
     ...mergeSystemSettings(parseSystemSettingsPayload(rows[0].valueJson)),
     updatedAt: rows[0].updatedAt instanceof Date ? rows[0].updatedAt.toISOString() : new Date().toISOString(),
     updatedByOpenId: rows[0].updatedByOpenId,
   };
+  systemSettingsCache = { value, expiresAt: Date.now() + SYSTEM_SETTINGS_CACHE_TTL_MS };
+  return value;
 }
 
 export async function saveSystemSettings(
@@ -4716,6 +4730,7 @@ export async function saveSystemSettings(
 ): Promise<SystemSettingsModel> {
   const normalized = mergeSystemSettings(input);
   normalized.updatedByOpenId = updatedByOpenId ?? "local-demo-user";
+  clearSystemSettingsCache();
   const db = await getDb();
   if (!db) {
     const before = demoSystemSettings;

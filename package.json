@@ -30,7 +30,9 @@
     "deploy:check": "node scripts/deployment-static.mjs",
     "qa:deploy": "pnpm qa:pilot && pnpm deploy:check",
     "polish:static": "node scripts/sprint17-polish-static.mjs",
-    "qa:polish": "pnpm qa:static && pnpm auth:static && pnpm approval:static && pnpm print:static && pnpm pilot:static && pnpm polish:static"
+    "qa:polish": "pnpm qa:static && pnpm auth:static && pnpm approval:static && pnpm print:static && pnpm pilot:static && pnpm polish:static",
+    "audit:17.7": "node scripts/sprint17-7-audit-closure-static.mjs",
+    "qa:17.7": "pnpm audit:17.7 && pnpm check && pnpm build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -97,7 +99,9 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",

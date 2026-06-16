@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -32,8 +34,28 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
+  // Sprint 17.7: production hardening for public Railway exposure.
   app.set("trust proxy", 1);
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+  app.use(
+    "/api/trpc",
+    rateLimit({
+      windowMs: Number(process.env.SBTS_RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000),
+      max: Number(process.env.SBTS_RATE_LIMIT_MAX ?? 300),
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        code: "RATE_LIMITED",
+        message: "Too many requests. Please wait and try again.",
+      },
+    })
+  );
+  // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 

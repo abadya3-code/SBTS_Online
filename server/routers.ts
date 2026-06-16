@@ -148,6 +148,29 @@ const phaseKeySchema = z.enum([
   "inspectionReady",
 ]);
 
+const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(10).max(100).default(25),
+  search: z.string().max(120).optional().nullable(),
+});
+
+function paginateRows<T>(rows: T[], input: z.infer<typeof paginationSchema>) {
+  const start = (input.page - 1) * input.limit;
+  return {
+    rows: rows.slice(start, start + input.limit),
+    total: rows.length,
+    page: input.page,
+    limit: input.limit,
+    totalPages: Math.max(1, Math.ceil(rows.length / input.limit)),
+  };
+}
+
+function textMatches(row: unknown, search?: string | null) {
+  if (!search) return true;
+  const haystack = JSON.stringify(row).toLowerCase();
+  return haystack.includes(search.toLowerCase());
+}
+
 const certificateStatusSchema = z.enum(["Draft", "Issued", "Printed"]);
 const tagLayoutModeSchema = z.enum(["Operational Split", "Compact Field", "Large QR"]);
 const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use HEX color like #0891b2");
@@ -168,8 +191,8 @@ const tagDesignerSettingsSchema = z.object({
   scopeType: z.enum(["Global", "Project"]),
   projectId: z.string().max(48).optional().nullable(),
   templateName: z.string().min(2).max(120),
-  tagWidthCm: z.number().int().min(5).max(30),
-  tagHeightCm: z.number().int().min(4).max(30),
+  tagWidthCm: z.coerce.number().min(5).max(30),
+  tagHeightCm: z.coerce.number().min(4).max(30),
   tagColor: hexColorSchema,
   accentColor: hexColorSchema,
   textColor: hexColorSchema,
@@ -214,8 +237,8 @@ const systemSettingsSchema = z.object({
     customAccentColor: hexColorSchema.optional(),
   }),
   tags: z.object({
-    defaultTagWidthCm: z.number().int().min(5).max(30),
-    defaultTagHeightCm: z.number().int().min(4).max(30),
+    defaultTagWidthCm: z.coerce.number().min(5).max(30),
+    defaultTagHeightCm: z.coerce.number().min(4).max(30),
     defaultTagColor: hexColorSchema,
     defaultAccentColor: hexColorSchema,
     defaultTextColor: hexColorSchema,
@@ -348,6 +371,30 @@ const coreRouter = router({
     requireActiveUser(ctx);
     return getBlindsCore();
   }),
+  areasPage: protectedProcedure
+    .input(paginationSchema.optional())
+    .query(async ({ input, ctx }) => {
+      requireActiveUser(ctx);
+      const pageInput = paginationSchema.parse(input ?? {});
+      const rows = (await getAreas()).filter(row => textMatches(row, pageInput.search));
+      return paginateRows(rows, pageInput);
+    }),
+  projectsPage: protectedProcedure
+    .input(paginationSchema.optional())
+    .query(async ({ input, ctx }) => {
+      requireActiveUser(ctx);
+      const pageInput = paginationSchema.parse(input ?? {});
+      const rows = (await getProjectsCore()).filter(row => textMatches(row, pageInput.search));
+      return paginateRows(rows, pageInput);
+    }),
+  blindsPage: protectedProcedure
+    .input(paginationSchema.optional())
+    .query(async ({ input, ctx }) => {
+      requireActiveUser(ctx);
+      const pageInput = paginationSchema.parse(input ?? {});
+      const rows = (await getBlindsCore()).filter(row => textMatches(row, pageInput.search));
+      return paginateRows(rows, pageInput);
+    }),
   dashboardSummary: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
     return getDashboardSummary();

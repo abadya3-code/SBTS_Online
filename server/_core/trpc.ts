@@ -5,7 +5,41 @@ import type { TrpcContext } from "./context";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    const zodError = error.cause && typeof error.cause === "object" && "flatten" in error.cause
+      ? (error.cause as { flatten: () => unknown }).flatten()
+      : null;
+
+    return {
+      ...shape,
+      message: userFriendlyErrorMessage(error.code, shape.message),
+      data: {
+        ...shape.data,
+        zodError,
+        sprint177: true,
+      },
+    };
+  },
 });
+
+function userFriendlyErrorMessage(code: string, fallback: string) {
+  switch (code) {
+    case "UNAUTHORIZED":
+      return "Login required. Please sign in again.";
+    case "FORBIDDEN":
+      return fallback || "You do not have permission for this action.";
+    case "NOT_FOUND":
+      return "Requested record was not found.";
+    case "CONFLICT":
+      return "This record already exists or conflicts with another workflow action.";
+    case "PRECONDITION_FAILED":
+      return fallback || "This workflow action cannot be completed yet.";
+    case "BAD_REQUEST":
+      return fallback || "Invalid input. Please review highlighted fields.";
+    default:
+      return fallback || "Unexpected system error. Please try again or contact the SBTS administrator.";
+  }
+}
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
