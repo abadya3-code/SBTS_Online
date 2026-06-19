@@ -1,63 +1,40 @@
-# SBTS Pilot Quick Start
+# SBTS Report Closure 100% Quick Start
 
-## 1. Install
-```powershell
-pnpm install
-```
+Apply this package over your current `SBTS_PRODUCTION_CLEAN` folder.
 
-## 2. Configure database
-```powershell
-copy .env.example .env
-```
+Do not delete:
 
-Edit:
-```txt
-DATABASE_URL=mysql://USER:PASSWORD@HOST:3306/SBTS_DB
-```
+- `.git`
+- `.env`
+- `node_modules`
 
-## 3. Apply and verify database
-```powershell
-pnpm db:push
-pnpm db:verify
-```
+## Commands
 
-## 4. Run QA
-```powershell
-pnpm qa:security
-pnpm qa:approval
-pnpm qa:print
-pnpm qa:pilot
-pnpm check
+```bash
+pnpm install --no-frozen-lockfile
+pnpm audit:report-closure
 pnpm build
 ```
 
-## 5. Run application
-```powershell
-pnpm dev
+Commit and deploy:
+
+```bash
+git add .
+git commit -m "Sprint 17 report closure transactions matrix preferences"
+git push
 ```
 
-## 6. Pilot documents
-Open:
-```txt
-docs/pilot/PILOT_CHECKLIST.md
-docs/pilot/PILOT_ADMIN_GUIDE.md
-docs/pilot/PILOT_USER_GUIDE.md
-docs/pilot/PILOT_ACCEPTANCE_FORM.md
+Railway:
+
+```bash
+railway run pnpm db:push
+railway run pnpm db:verify
+railway run pnpm seed:admin
 ```
 
-## 7. Sample data
-Use:
-```txt
-samples/pilot_sample_data.json
-samples/pilot_blinds_import_template.csv
-```
+## Online validation
 
-## Sprint 17.10 / 17.11 Quick Check
-
-1. Run `pnpm install --no-frozen-lockfile` after copying the package.
-2. Run `pnpm audit:17.10`.
-3. Run `pnpm audit:17.11`.
-4. Run `pnpm build`.
-5. Deploy to Railway.
-6. Login as Admin and open `/monitoring`.
-7. Confirm the dashboard displays API metrics, database status, recent errors, and security events.
+- Admin: test Access Control, Monitoring, User Profile, phase move, approval, certificate.
+- Supervisor: verify assigned project scope only.
+- Technician: verify only assigned phase and own badge signature works.
+- User Profile: save interface mode, keyboard shortcuts, and command search preferences.

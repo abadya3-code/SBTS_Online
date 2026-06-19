@@ -22,14 +22,32 @@ interface ThemeProviderProps {
 
 const THEME_MODE_STORAGE_KEY = "sbts.themeMode.v1";
 const LEGACY_THEME_STORAGE_KEY = "theme";
+const USER_PROFILE_STORAGE_KEY = "sbts.userProfile.v1";
 
 function getSystemTheme(): EffectiveTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function readProfileThemeMode(): ThemeMode | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(USER_PROFILE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { interfaceThemeMode?: unknown };
+    return parsed.interfaceThemeMode === "light" || parsed.interfaceThemeMode === "dark" || parsed.interfaceThemeMode === "system"
+      ? parsed.interfaceThemeMode
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function readInitialThemeMode(defaultTheme: ThemeMode): ThemeMode {
   if (typeof window === "undefined") return defaultTheme;
+  const profileMode = readProfileThemeMode();
+  if (profileMode) return profileMode;
+
   const stored = window.localStorage.getItem(THEME_MODE_STORAGE_KEY) as ThemeMode | null;
   if (stored === "light" || stored === "dark" || stored === "system") return stored;
 
@@ -63,6 +81,20 @@ export function ThemeProvider({
     update();
     query.addEventListener("change", update);
     return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncProfileTheme = () => {
+      const profileMode = readProfileThemeMode();
+      if (profileMode) setThemeModeState(profileMode);
+    };
+    window.addEventListener("sbts-user-profile-changed", syncProfileTheme);
+    window.addEventListener("storage", syncProfileTheme);
+    return () => {
+      window.removeEventListener("sbts-user-profile-changed", syncProfileTheme);
+      window.removeEventListener("storage", syncProfileTheme);
+    };
   }, []);
 
   useEffect(() => {

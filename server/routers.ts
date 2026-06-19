@@ -77,6 +77,8 @@ import {
   getApprovalProfiles,
   getCertificateLockStatus,
   getBlindMutationLockStatus,
+  getUserPreferences,
+  saveUserPreferences,
 } from "./db";
 
 const workflowPhaseSchema = z.object({
@@ -323,6 +325,22 @@ const tagDesignerSettingsSchema = z.object({
   layoutMode: tagLayoutModeSchema,
 });
 
+const interfaceThemeModeSchema = z.enum(["light", "dark", "system"]);
+const themePreferenceModeSchema = z.enum(["system", "personal"]);
+
+const userPreferencesSchema = z.object({
+  displayName: z.string().max(180).optional().nullable(),
+  recoveryEmail: z.string().email().max(320).optional().nullable().or(z.literal("")),
+  specialtyDescription: z.string().max(2000).optional().nullable(),
+  avatarDataUrl: z.string().max(500000).optional().nullable(),
+  themePreferenceMode: themePreferenceModeSchema.default("system"),
+  themeTemplate: z.string().max(80).default("Template 1"),
+  customAccentColor: hexColorSchema.default("#0891b2"),
+  interfaceThemeMode: interfaceThemeModeSchema.default("system"),
+  commandSearchEnabled: z.boolean().default(true),
+  keyboardShortcutsEnabled: z.boolean().default(true),
+});
+
 const systemSettingsSchema = z.object({
   general: z.object({
     systemName: z.string().min(2).max(160),
@@ -446,7 +464,35 @@ const coreRouter = router({
     roleKey: ctx.user?.roleKey ?? null,
     productionBinding: Boolean(ctx.user),
   })),
-  registerPasswordCredential: adminProcedure
+  userPreferences: protectedProcedure.query(async ({ ctx }) => {
+    return getUserPreferences(
+      ctx.user.openId,
+      ctx.user.employeeId ?? null,
+      ctx.user.name ?? null
+    );
+  }),
+  saveUserPreferences: protectedProcedure
+    .input(userPreferencesSchema)
+    .mutation(async ({ input, ctx }) => {
+      return saveUserPreferences(
+        {
+          openId: ctx.user.openId,
+          employeeId: ctx.user.employeeId ?? null,
+          displayName: input.displayName ?? ctx.user.name ?? null,
+          recoveryEmail: input.recoveryEmail || null,
+          specialtyDescription: input.specialtyDescription ?? null,
+          avatarDataUrl: input.avatarDataUrl ?? null,
+          themePreferenceMode: input.themePreferenceMode,
+          themeTemplate: input.themeTemplate,
+          customAccentColor: input.customAccentColor,
+          interfaceThemeMode: input.interfaceThemeMode,
+          commandSearchEnabled: input.commandSearchEnabled,
+          keyboardShortcutsEnabled: input.keyboardShortcutsEnabled,
+        },
+        ctx.user.openId
+      );
+    }),
+    registerPasswordCredential: adminProcedure
     .input(
       z.object({
         employeeId: z.string().min(1).max(64),

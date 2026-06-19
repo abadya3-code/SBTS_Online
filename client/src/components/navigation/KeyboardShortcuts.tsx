@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { readUserProfile } from "@/lib/userProfile";
 
 type ShortcutNavItem = {
   href: string;
@@ -32,6 +33,20 @@ export function KeyboardShortcuts({ navItems }: KeyboardShortcutsProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [goMode, setGoMode] = useState(false);
+  const [preferences, setPreferences] = useState(() => readUserProfile());
+
+  useEffect(() => {
+    const refresh = () => setPreferences(readUserProfile());
+    window.addEventListener("sbts-user-profile-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("sbts-user-profile-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const commandSearchEnabled = preferences.commandSearchEnabled ?? true;
+  const keyboardShortcutsEnabled = preferences.keyboardShortcutsEnabled ?? true;
 
   const searchableItems = useMemo(
     () => navItems.filter((item) => item.href && item.label),
@@ -62,6 +77,7 @@ export function KeyboardShortcuts({ navItems }: KeyboardShortcutsProps) {
       }
 
       if ((event.ctrlKey || event.metaKey) && key === "k") {
+        if (!commandSearchEnabled) return;
         event.preventDefault();
         setOpen((value) => !value);
         return;
@@ -70,10 +86,13 @@ export function KeyboardShortcuts({ navItems }: KeyboardShortcutsProps) {
       if (isEditableTarget(event.target)) return;
 
       if (key === "/") {
+        if (!commandSearchEnabled) return;
         event.preventDefault();
         setOpen(true);
         return;
       }
+
+      if (!keyboardShortcutsEnabled) return;
 
       if (key === "g") {
         setGoMode(true);
@@ -90,7 +109,7 @@ export function KeyboardShortcuts({ navItems }: KeyboardShortcutsProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [goMode, setLocation]);
+  }, [commandSearchEnabled, goMode, keyboardShortcutsEnabled, setLocation]);
 
   function openItem(href: string) {
     setLocation(href);

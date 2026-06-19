@@ -411,6 +411,9 @@ export const userPreferences = mysqlTable("user_preferences", {
   themePreferenceMode: varchar("themePreferenceMode", { length: 40 }).default("system").notNull(),
   themeTemplate: varchar("themeTemplate", { length: 80 }).default("Template 1").notNull(),
   customAccentColor: varchar("customAccentColor", { length: 24 }).default("#0891b2").notNull(),
+  interfaceThemeMode: varchar("interfaceThemeMode", { length: 20 }).default("system").notNull(),
+  commandSearchEnabled: int("commandSearchEnabled").default(1).notNull(),
+  keyboardShortcutsEnabled: int("keyboardShortcutsEnabled").default(1).notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

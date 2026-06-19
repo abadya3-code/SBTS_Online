@@ -43,7 +43,9 @@
     "qa:17.10": "pnpm audit:17.10 && pnpm check && pnpm build",
     "audit:17.11": "node scripts/sprint17-11-type-safety-static.mjs",
     "qa:17.11": "pnpm audit:17.11 && pnpm check && pnpm build",
-    "qa:17.10-17.11": "pnpm audit:17.10 && pnpm audit:17.11 && pnpm check && pnpm build"
+    "qa:17.10-17.11": "pnpm audit:17.10 && pnpm audit:17.11 && pnpm check && pnpm build",
+    "audit:report-closure": "node scripts/sprint17-report-closure-static.mjs",
+    "qa:report-closure": "pnpm audit:17.8.2 && pnpm audit:17.8.3 && pnpm audit:17.9 && pnpm audit:17.10 && pnpm audit:17.11 && pnpm audit:report-closure && pnpm check && pnpm build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

@@ -630,6 +630,24 @@ export type AccessControlAuditActor = {
   roleKey?: string | null;
 };
 
+export type UserPreferenceModel = {
+  openId: string;
+  employeeId?: string | null;
+  displayName?: string | null;
+  recoveryEmail?: string | null;
+  specialtyDescription?: string | null;
+  avatarDataUrl?: string | null;
+  themePreferenceMode: "system" | "personal";
+  themeTemplate: string;
+  customAccentColor: string;
+  interfaceThemeMode: "light" | "dark" | "system";
+  commandSearchEnabled: boolean;
+  keyboardShortcutsEnabled: boolean;
+  updatedAt?: string | null;
+};
+
+export type SaveUserPreferenceInput = Omit<UserPreferenceModel, "updatedAt">;
+
 export type WorkflowPhaseInput = {
   id: string;
   label: string;
@@ -4016,6 +4034,18 @@ export async function moveBlindPhase(
     return detail;
   }
 
+  const finalApprovalProfile = input.toPhaseKey === "finalTight"
+    ? matchApprovalProfile(current.blindType, await getApprovalProfiles())
+    : null;
+  const existingFinalApprovals = input.toPhaseKey === "finalTight"
+    ? (await getApprovalCenter()).filter(approval => approval.blindId === current.id && approval.phaseKey === "finalTight")
+    : [];
+  const finalApproversToCreate = finalApprovalProfile
+    ? finalApprovalProfile.approvers
+        .filter(approver => approver.required)
+        .filter(approver => !existingFinalApprovals.some(approval => approval.requiredRoleKey === approver.roleKey && approval.status !== "Rejected"))
+    : [];
+
   await db.transaction(async tx => {
     await tx
       .update(blinds)
@@ -4048,37 +4078,60 @@ export async function moveBlindPhase(
       remarks: log.remarks,
     });
 
-
-  });
-  if (input.toPhaseKey === "finalTight") {
-    const detailForApproval = await getBlindDetail(current.id);
-    if (detailForApproval) {
-      await ensureFinalApprovalRequests(detailForApproval, signer.badge);
+    if (finalApproversToCreate.length > 0) {
+      await tx.insert(approvals).values(
+        finalApproversToCreate.map(approver => ({
+          blindId: current.id,
+          phaseKey: "finalTight" as PhaseKey,
+          requiredRoleKey: approver.roleKey,
+          approvedByOpenId: null,
+          status: "Pending",
+          remarks: `${finalApprovalProfile?.blindType ?? current.blindType} final approval requires ${approver.label}. Certificate unlock: ${finalApprovalProfile?.unlockCertificate ? "enabled" : "disabled"}.`,
+        }))
+      );
     }
-  }
-  await recordAuditTrail({
-    entityType: "Workflow",
-    entityId: current.id,
-    projectId: current.projectId,
-    blindId: current.id,
-    action: "Phase gate approved",
-    actorOpenId: signer.badge,
-    actorName: signer.fullName,
-    actorRoleKey: assignment.roleKey,
-    summary: `${current.tagNo} moved from ${current.phaseLabel} to ${phase.label}.`,
-    before: { phase: current.currentPhaseKey, status: current.status },
-    after: { phase: input.toPhaseKey, status: nextStatus },
+
+    await tx.insert(auditTrail).values({
+      entityType: "Workflow",
+      entityId: current.id,
+      projectId: current.projectId,
+      blindId: current.id,
+      action: "Phase gate approved",
+      actorOpenId: signer.badge,
+      actorName: signer.fullName,
+      actorRoleKey: assignment.roleKey,
+      summary: `${current.tagNo} moved from ${current.phaseLabel} to ${phase.label}.`,
+      beforeJson: JSON.stringify({ phase: current.currentPhaseKey, status: current.status }),
+      afterJson: JSON.stringify({ phase: input.toPhaseKey, status: nextStatus, createdFinalApprovals: finalApproversToCreate.length }),
+    });
+
+    await tx.insert(notifications).values({
+      userOpenId: null,
+      type: input.toPhaseKey === "finalTight" ? "Approval" : "System",
+      title: `${current.tagNo} moved to ${phase.label}`,
+      message: `${signer.fullName} signed the phase update for ${current.tagNo}.`,
+      relatedEntity: "Blind",
+      relatedId: current.id,
+      actionUrl: `/blinds/${current.id}`,
+      severity: input.toPhaseKey === "finalTight" ? "warning" : "info",
+      status: "Unread",
+    });
+
+    if (finalApproversToCreate.length > 0) {
+      await tx.insert(notifications).values({
+        userOpenId: null,
+        type: "Approval",
+        title: `${current.tagNo} final approvals created`,
+        message: `${current.blindType} requires ${finalApproversToCreate.map(approver => approver.label).join(", ")} before certificate release.`,
+        relatedEntity: "Blind",
+        relatedId: current.id,
+        actionUrl: "/approvals",
+        severity: "warning",
+        status: "Unread",
+      });
+    }
   });
-  await createSystemNotification({
-    userOpenId: null,
-    type: input.toPhaseKey === "finalTight" ? "Approval" : "System",
-    title: `${current.tagNo} moved to ${phase.label}`,
-    message: `${signer.fullName} signed the phase update for ${current.tagNo}.`,
-    relatedEntity: "Blind",
-    relatedId: current.id,
-    actionUrl: `/blinds/${current.id}`,
-    severity: input.toPhaseKey === "finalTight" ? "warning" : "info",
-  });
+
   const detail = await getBlindDetail(current.id);
   if (!detail) throw new Error("Blind could not be read after phase update.");
   return detail;
@@ -4603,6 +4656,7 @@ export async function approveWorkflowRequest(
     }
     return updatedApproval;
   }
+
   await db.transaction(async tx => {
     await tx
       .update(approvals)
@@ -4613,6 +4667,7 @@ export async function approveWorkflowRequest(
         approvedAt: new Date(),
       })
       .where(eq(approvals.id, Number(input.approvalId)));
+
     await tx.insert(blindWorkflowLogs).values({
       blindId: approval.blindId,
       fromPhaseKey: approval.phaseKey,
@@ -4622,56 +4677,55 @@ export async function approveWorkflowRequest(
       actorRoleKey: log.actorRoleKey,
       remarks: log.remarks,
     });
-  });
-  if (nextStatus === "Approved" && approval.phaseKey === "finalTight") {
-    const lockStatus = await getCertificateLockStatus(approval.blindId, actorOpenId ?? signerBadge);
-    const dbAfter = await getDb();
-    if (!lockStatus.locked) {
-      if (!dbAfter) {
-        demoBlinds = demoBlinds.map(blind =>
-          blind.id === approval.blindId ? { ...blind, status: "Completed" } : blind
-        );
-      } else {
-        await dbAfter.update(blinds).set({ status: "Completed" }).where(eq(blinds.id, approval.blindId));
-      }
-      await recordAuditTrail({
+
+    if (nextStatus === "Approved" && approval.phaseKey === "finalTight") {
+      await tx
+        .update(blinds)
+        .set({ status: "Completed" })
+        .where(eq(blinds.id, approval.blindId));
+      await tx.insert(auditTrail).values({
         entityType: "CertificateLock",
         entityId: approval.blindId,
         projectId: approval.projectId,
         blindId: approval.blindId,
-        action: "Certificate unlocked",
+        action: "Certificate unlock evaluated",
         actorOpenId: signerBadge,
         actorName: signerName,
         actorRoleKey: assignment.roleKey,
-        summary: `${approval.tagNo} certificate unlocked after final approvals.`,
-        after: lockStatus,
+        summary: `${approval.tagNo} final-tight approval completed; blind marked completed for certificate release evaluation.`,
+        afterJson: JSON.stringify({ approvalId: input.approvalId, decision: nextStatus }),
       });
     }
-  }
+
+    await tx.insert(auditTrail).values({
+      entityType: "Approval",
+      entityId: String(input.approvalId),
+      projectId: approval.projectId,
+      blindId: approval.blindId,
+      action: nextStatus === "Approved" ? "Approval approved" : "Approval rejected",
+      actorOpenId: signerBadge,
+      actorName: signerName,
+      actorRoleKey: assignment.roleKey,
+      summary: `${approval.tagNo} ${nextStatus.toLowerCase()} by ${signerName}.`,
+      beforeJson: JSON.stringify(approval),
+      afterJson: JSON.stringify({ ...approval, status: nextStatus, approvedByOpenId: signerBadge, remarks: input.remarks ?? approval.remarks ?? null }),
+    });
+
+    await tx.insert(notifications).values({
+      userOpenId: null,
+      type: "Approval",
+      title: nextStatus === "Approved" ? "Approval completed" : "Approval rejected",
+      message: `${approval.tagNo} was ${nextStatus.toLowerCase()} by ${signerName}.`,
+      relatedEntity: "Approval",
+      relatedId: String(input.approvalId),
+      actionUrl: `/blinds/${approval.blindId}`,
+      severity: nextStatus === "Approved" ? "success" : "danger",
+      status: "Unread",
+    });
+  });
+
   const updated = (await getApprovalCenter()).find(item => String(item.id) === String(input.approvalId));
   if (!updated) throw new Error("Approval could not be read after update.");
-  await recordAuditTrail({
-    entityType: "Approval",
-    entityId: String(updated.id),
-    projectId: updated.projectId,
-    blindId: updated.blindId,
-    action: nextStatus === "Approved" ? "Approval approved" : "Approval rejected",
-    actorOpenId: signerBadge,
-    actorName: signerName,
-    actorRoleKey: assignment.roleKey,
-    summary: `${updated.tagNo} ${nextStatus.toLowerCase()} by ${signerName}.`,
-    after: updated,
-  });
-  await createSystemNotification({
-    userOpenId: null,
-    type: "Approval",
-    title: nextStatus === "Approved" ? "Approval completed" : "Approval rejected",
-    message: `${updated.tagNo} was ${nextStatus.toLowerCase()} by ${signerName}.`,
-    relatedEntity: "Approval",
-    relatedId: String(updated.id),
-    actionUrl: `/blinds/${updated.blindId}`,
-    severity: nextStatus === "Approved" ? "success" : "danger",
-  });
   return updated;
 }
 
@@ -5238,6 +5292,10 @@ export async function issueCertificate(
     });
     return cert;
   }
+
+  const torqueSnapshot = await getTorqueRecords(blind.id);
+  const approvalSnapshot = (await getApprovalCenter()).filter(item => item.blindId === blind.id);
+
   await db.transaction(async tx => {
     await tx.update(certificates).set({ status: "Superseded" }).where(eq(certificates.blindId, blind.id));
     await tx.insert(certificates).values({
@@ -5248,8 +5306,8 @@ export async function issueCertificate(
       templateVersion: cert.templateVersion,
       qrValue: cert.qrValue,
       blindSnapshotJson: JSON.stringify(blind),
-      torqueSnapshotJson: JSON.stringify(await getTorqueRecords(blind.id)),
-      approvalSnapshotJson: JSON.stringify((await getApprovalCenter()).filter(item => item.blindId === blind.id)),
+      torqueSnapshotJson: JSON.stringify(torqueSnapshot),
+      approvalSnapshotJson: JSON.stringify(approvalSnapshot),
       workflowSnapshotJson: JSON.stringify(blind.logs ?? []),
       issuedByOpenId: cert.issuedByOpenId,
       status: cert.status,
@@ -5266,34 +5324,157 @@ export async function issueCertificate(
       actorRoleKey: "inspection",
       remarks: `${cert.certificateNo} persisted as ${cert.status}.`,
     });
+    await tx.insert(auditTrail).values({
+      entityType: "Certificate",
+      entityId: cert.certificateNo,
+      projectId: blind.projectId,
+      blindId: blind.id,
+      action: cert.status === "Printed" ? "Certificate printed" : "Certificate issued",
+      actorOpenId: cert.issuedByOpenId,
+      actorName: cert.issuedByOpenId === "local-demo-user" ? "Local User" : cert.issuedByOpenId ?? "Unknown",
+      actorRoleKey: "inspection",
+      summary: `${cert.certificateNo} persisted as ${cert.status}.`,
+      afterJson: JSON.stringify(cert),
+    });
+    await tx.insert(notifications).values({
+      userOpenId: null,
+      type: "Certificate",
+      title: cert.status === "Printed" ? "Certificate printed" : "Certificate issued",
+      message: `${cert.certificateNo} for ${blind.tagNo} was saved as ${cert.status}.`,
+      relatedEntity: "Certificate",
+      relatedId: cert.certificateNo,
+      actionUrl: `/blinds/${blind.id}/certificate`,
+      severity: "success",
+      status: "Unread",
+    });
   });
-  await recordAuditTrail({
-    entityType: "Certificate",
-    entityId: cert.certificateNo,
-    projectId: blind.projectId,
-    blindId: blind.id,
-    action: cert.status === "Printed" ? "Certificate printed" : "Certificate issued",
-    actorOpenId: cert.issuedByOpenId,
-    actorName: cert.issuedByOpenId === "local-demo-user" ? "Local User" : cert.issuedByOpenId ?? "Unknown",
-    actorRoleKey: "inspection",
-    summary: `${cert.certificateNo} persisted as ${cert.status}.`,
-    after: cert,
-  });
-  await createSystemNotification({
-    userOpenId: null,
-    type: "Certificate",
-    title: cert.status === "Printed" ? "Certificate printed" : "Certificate issued",
-    message: `${cert.certificateNo} for ${blind.tagNo} was saved as ${cert.status}.`,
-    relatedEntity: "Certificate",
-    relatedId: cert.certificateNo,
-    actionUrl: `/blinds/${blind.id}/certificate`,
-    severity: "success",
-  });
+
   const saved = (await getCertificates({ blindId: blind.id })).find(item => item.certificateNo === cert.certificateNo);
   if (!saved) throw new Error("Certificate could not be read after issue.");
   return saved;
 }
 
+
+
+// -----------------------------------------------------------------------------
+// Sprint 17 Report Closure — User Preferences DB Persistence
+// -----------------------------------------------------------------------------
+
+function normalizeUserPreference(row: typeof userPreferences.$inferSelect): UserPreferenceModel {
+  return {
+    openId: row.openId,
+    employeeId: row.employeeId ?? null,
+    displayName: row.displayName ?? null,
+    recoveryEmail: row.recoveryEmail ?? null,
+    specialtyDescription: row.specialtyDescription ?? null,
+    avatarDataUrl: row.avatarDataUrl ?? null,
+    themePreferenceMode: row.themePreferenceMode === "personal" ? "personal" : "system",
+    themeTemplate: row.themeTemplate ?? "Template 1",
+    customAccentColor: row.customAccentColor ?? "#0891b2",
+    interfaceThemeMode:
+      row.interfaceThemeMode === "light" || row.interfaceThemeMode === "dark"
+        ? row.interfaceThemeMode
+        : "system",
+    commandSearchEnabled: Boolean(row.commandSearchEnabled),
+    keyboardShortcutsEnabled: Boolean(row.keyboardShortcutsEnabled),
+    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : String(row.updatedAt),
+  };
+}
+
+export async function getUserPreferences(
+  openId: string,
+  employeeId?: string | null,
+  fallbackDisplayName?: string | null
+): Promise<UserPreferenceModel> {
+  const db = await getDb();
+  const fallback: UserPreferenceModel = {
+    openId,
+    employeeId: employeeId ?? null,
+    displayName: fallbackDisplayName ?? null,
+    recoveryEmail: null,
+    specialtyDescription: null,
+    avatarDataUrl: null,
+    themePreferenceMode: "system",
+    themeTemplate: "Template 1",
+    customAccentColor: "#0891b2",
+    interfaceThemeMode: "system",
+    commandSearchEnabled: true,
+    keyboardShortcutsEnabled: true,
+    updatedAt: null,
+  };
+  if (!db) return fallback;
+  const rows = await db
+    .select()
+    .from(userPreferences)
+    .where(eq(userPreferences.openId, openId))
+    .limit(1);
+  return rows[0] ? normalizeUserPreference(rows[0]) : fallback;
+}
+
+export async function saveUserPreferences(
+  input: SaveUserPreferenceInput,
+  actorOpenId?: string | null
+): Promise<UserPreferenceModel> {
+  const db = await requireDb();
+  const before = await getUserPreferences(input.openId, input.employeeId, input.displayName);
+  const safeThemePreferenceMode = input.themePreferenceMode === "personal" ? "personal" : "system";
+  const safeInterfaceThemeMode =
+    input.interfaceThemeMode === "light" || input.interfaceThemeMode === "dark"
+      ? input.interfaceThemeMode
+      : "system";
+  const next = {
+    openId: input.openId,
+    employeeId: input.employeeId ?? null,
+    displayName: input.displayName ?? null,
+    recoveryEmail: input.recoveryEmail ?? null,
+    specialtyDescription: input.specialtyDescription ?? null,
+    avatarDataUrl: input.avatarDataUrl ?? null,
+    themePreferenceMode: safeThemePreferenceMode,
+    themeTemplate: input.themeTemplate ?? "Template 1",
+    customAccentColor: input.customAccentColor ?? "#0891b2",
+    interfaceThemeMode: safeInterfaceThemeMode,
+    commandSearchEnabled: input.commandSearchEnabled ? 1 : 0,
+    keyboardShortcutsEnabled: input.keyboardShortcutsEnabled ? 1 : 0,
+  };
+
+  await db.transaction(async tx => {
+    await tx
+      .insert(userPreferences)
+      .values(next)
+      .onDuplicateKeyUpdate({
+        set: {
+          employeeId: next.employeeId,
+          displayName: next.displayName,
+          recoveryEmail: next.recoveryEmail,
+          specialtyDescription: next.specialtyDescription,
+          avatarDataUrl: next.avatarDataUrl,
+          themePreferenceMode: next.themePreferenceMode,
+          themeTemplate: next.themeTemplate,
+          customAccentColor: next.customAccentColor,
+          interfaceThemeMode: next.interfaceThemeMode,
+          commandSearchEnabled: next.commandSearchEnabled,
+          keyboardShortcutsEnabled: next.keyboardShortcutsEnabled,
+          updatedAt: new Date(),
+        },
+      });
+
+    await tx.insert(auditTrail).values({
+      entityType: "UserPreference",
+      entityId: input.openId,
+      projectId: null,
+      blindId: null,
+      action: "User preferences saved",
+      actorOpenId: actorOpenId ?? input.openId,
+      actorName: input.displayName ?? input.openId,
+      actorRoleKey: "user",
+      summary: "User profile and operator preferences persisted to database.",
+      beforeJson: JSON.stringify(before),
+      afterJson: JSON.stringify(next),
+    });
+  });
+
+  return getUserPreferences(input.openId, input.employeeId, input.displayName);
+}
 
 // -----------------------------------------------------------------------------
 // Sprint 7 — Notifications, Inbox Actions, Certificate/Tag Audit Trail
