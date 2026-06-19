@@ -16,6 +16,16 @@ function readRoleKey(user: SbtsUserContext) {
   return user.roleKey ?? (user.role === "admin" ? "admin" : null);
 }
 
+function isAdmin(user: SbtsUserContext) {
+  return readRoleKey(user) === "admin";
+}
+
+function normalizeBadge(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
 export function requireActiveUser(ctx: SbtsPermissionContext): SbtsUserContext {
   if (!ctx.user) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Login required." });
@@ -39,13 +49,19 @@ export function requireAdmin(ctx: SbtsPermissionContext): SbtsUserContext {
   const roleKey = readRoleKey(user);
 
   if (roleKey !== "admin") {
-    throw new TRPCError({ code: "FORBIDDEN", message: "Admin permission required." });
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin permission required.",
+    });
   }
 
   return user;
 }
 
-export function requireRole(ctx: SbtsPermissionContext, allowedRoleKeys: string[]): SbtsUserContext {
+export function requireRole(
+  ctx: SbtsPermissionContext,
+  allowedRoleKeys: string[]
+): SbtsUserContext {
   const user = requireActiveUser(ctx);
   const roleKey = readRoleKey(user);
 
@@ -61,7 +77,10 @@ export function requireRole(ctx: SbtsPermissionContext, allowedRoleKeys: string[
   return user;
 }
 
-export function requirePermission(ctx: SbtsPermissionContext, permissionKey: string): SbtsUserContext {
+export function requirePermission(
+  ctx: SbtsPermissionContext,
+  permissionKey: string
+): SbtsUserContext {
   const user = requireActiveUser(ctx);
   const roleKey = readRoleKey(user);
 
@@ -77,54 +96,91 @@ export function requirePermission(ctx: SbtsPermissionContext, permissionKey: str
   return user;
 }
 
-export function requireAreaAccess(ctx: SbtsPermissionContext, areaId: string): SbtsUserContext {
+export function requireAreaAccess(
+  ctx: SbtsPermissionContext,
+  areaId: string
+): SbtsUserContext {
   const user = requireActiveUser(ctx);
-  const roleKey = readRoleKey(user);
 
-  if (roleKey === "admin") return user;
+  if (isAdmin(user)) return user;
 
-  // Sprint 17.4 safety guard: once area-level assignment is populated, enforce it.
-  // Empty/undefined lists are temporarily treated as role-level access to avoid breaking legacy pilot data.
-  if (user.areaIds?.length && !user.areaIds.includes(areaId)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this area." });
+  if (!Array.isArray(user.areaIds) || !user.areaIds.includes(areaId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have access to this area.",
+    });
   }
 
   return user;
 }
 
-export function requireProjectAccess(ctx: SbtsPermissionContext, projectId: string): SbtsUserContext {
+export function requireProjectAccess(
+  ctx: SbtsPermissionContext,
+  projectId: string
+): SbtsUserContext {
   const user = requireActiveUser(ctx);
-  const roleKey = readRoleKey(user);
 
-  if (roleKey === "admin") return user;
+  if (isAdmin(user)) return user;
 
-  // Sprint 17.4 safety guard: once project-level assignment is populated, enforce it.
-  // Empty/undefined lists are temporarily treated as role-level access to avoid breaking legacy pilot data.
-  if (user.projectIds?.length && !user.projectIds.includes(projectId)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "You do not have access to this project." });
+  if (!Array.isArray(user.projectIds) || !user.projectIds.includes(projectId)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You do not have access to this project.",
+    });
   }
 
   return user;
 }
 
-export function requirePhaseAuthorization(ctx: SbtsPermissionContext, phaseKey: string): SbtsUserContext {
+export function requirePhaseAuthorization(
+  ctx: SbtsPermissionContext,
+  phaseKey: string
+): SbtsUserContext {
   const user = requireActiveUser(ctx);
   const roleKey = readRoleKey(user);
 
   if (roleKey === "admin") return user;
 
-  if (user.phaseKeys?.length && !user.phaseKeys.includes(phaseKey)) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "You are not authorized for this workflow phase." });
+  if (!Array.isArray(user.phaseKeys) || !user.phaseKeys.includes(phaseKey)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You are not authorized for this workflow phase.",
+    });
   }
 
   return user;
 }
 
-export function requireCertificateUnlocked(locked?: boolean | null, reason?: string | null) {
+export function requireCertificateUnlocked(
+  locked?: boolean | null,
+  reason?: string | null
+) {
   if (locked) {
     throw new TRPCError({
       code: "PRECONDITION_FAILED",
-      message: reason ?? "Certificate is locked. This record cannot be modified.",
+      message:
+        reason ?? "Certificate is locked. This record cannot be modified.",
     });
   }
+}
+
+export function requirePhaseSignatureBinding(
+  ctx: SbtsPermissionContext,
+  signatureId?: string | null
+): SbtsUserContext {
+  const user = requireActiveUser(ctx);
+
+  if (isAdmin(user)) return user;
+
+  const signature = normalizeBadge(signatureId);
+  const badge = normalizeBadge(user.badge);
+
+  if (!signature || !badge || signature !== badge) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Phase signature must match the authenticated employee badge.",
+    });
+  }
+
+  return user;
 }

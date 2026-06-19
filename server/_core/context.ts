@@ -1,7 +1,15 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { accessRolePermissions, accessRoles, employees, sbtsAuthSessions } from "../../drizzle/schema";
+import {
+  accessRolePermissions,
+  accessRoles,
+  employees,
+  projectPhaseAssignments,
+  projects,
+  sbtsAuthSessions,
+} from "../../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
+import { inArray } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { sdk } from "./sdk";
 import { getDb } from "../db";
@@ -35,30 +43,95 @@ function safeJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter(item => typeof item === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(item => typeof item === "string")
+      : [];
   } catch {
     return [];
   }
 }
 
-async function authenticateSbtsSession(req: CreateExpressContextOptions["req"]): Promise<{ user: AuthSessionUser | null; sessionId: string | null }> {
+function normalizeBadge(value: string | null | undefined) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function assignmentBadges(value: string | null | undefined): string[] {
+  return safeJsonArray(value).map(normalizeBadge);
+}
+
+async function resolveEmployeeScope(
+  db: Awaited<ReturnType<typeof getDb>>,
+  employee: typeof employees.$inferSelect
+) {
+  if (!db || employee.roleKey === "admin") {
+    return { areaIds: [], projectIds: [] };
+  }
+
+  const badge = normalizeBadge(employee.badge);
+  if (!badge) return { areaIds: [], projectIds: [] };
+
+  const assignmentRows = await db.select().from(projectPhaseAssignments);
+  const projectIds = Array.from(
+    new Set(
+      assignmentRows
+        .filter(assignment =>
+          assignmentBadges(assignment.authorizedEmployeeBadgesJson).includes(
+            badge
+          )
+        )
+        .map(assignment => assignment.projectId)
+    )
+  );
+
+  if (projectIds.length === 0) return { areaIds: [], projectIds: [] };
+
+  const projectRows = await db
+    .select({ id: projects.id, areaId: projects.areaId })
+    .from(projects)
+    .where(inArray(projects.id, projectIds));
+
+  return {
+    projectIds: projectRows.map(project => project.id),
+    areaIds: Array.from(new Set(projectRows.map(project => project.areaId))),
+  };
+}
+
+async function authenticateSbtsSession(
+  req: CreateExpressContextOptions["req"]
+): Promise<{ user: AuthSessionUser | null; sessionId: string | null }> {
   const sessionId = parseCookie(req.headers.cookie, COOKIE_NAME);
   if (!sessionId) return { user: null, sessionId: null };
 
   const db = await getDb();
   if (!db) return { user: null, sessionId };
 
-  const rows = await db.select().from(sbtsAuthSessions).where(eq(sbtsAuthSessions.id, sessionId)).limit(1);
+  const rows = await db
+    .select()
+    .from(sbtsAuthSessions)
+    .where(eq(sbtsAuthSessions.id, sessionId))
+    .limit(1);
   const session = rows[0];
   if (!session) return { user: null, sessionId };
   if (session.revokedAt) return { user: null, sessionId };
-  if (session.expiresAt && new Date(session.expiresAt).getTime() < Date.now()) return { user: null, sessionId };
+  if (session.expiresAt && new Date(session.expiresAt).getTime() < Date.now())
+    return { user: null, sessionId };
 
-  const employeeRows = await db.select().from(employees).where(eq(employees.id, session.employeeId)).limit(1);
+  const employeeRows = await db
+    .select()
+    .from(employees)
+    .where(eq(employees.id, session.employeeId))
+    .limit(1);
   const employee = employeeRows[0];
-  if (!employee || employee.status !== "Active") return { user: null, sessionId };
+  if (!employee || employee.status !== "Active")
+    return { user: null, sessionId };
 
-  const roleRows = await db.select().from(accessRoles).where(eq(accessRoles.key, employee.roleKey)).limit(1);
+  const roleRows = await db
+    .select()
+    .from(accessRoles)
+    .where(eq(accessRoles.key, employee.roleKey))
+    .limit(1);
   const role = roleRows[0];
   const permissionRows = await db
     .select()
@@ -68,6 +141,8 @@ async function authenticateSbtsSession(req: CreateExpressContextOptions["req"]):
   const phaseKeys = role?.phaseKeysJson
     ? safeJsonArray(role.phaseKeysJson)
     : [];
+
+  const scope = await resolveEmployeeScope(db, employee);
 
   return {
     sessionId,
@@ -85,10 +160,12 @@ async function authenticateSbtsSession(req: CreateExpressContextOptions["req"]):
       badge: employee.badge,
       roleKey: employee.roleKey,
       status: employee.status,
-      permissionKeys: permissionRows.map(permission => permission.permissionKey),
+      permissionKeys: permissionRows.map(
+        permission => permission.permissionKey
+      ),
       phaseKeys,
-      areaIds: [],
-      projectIds: [],
+      areaIds: scope.areaIds,
+      projectIds: scope.projectIds,
     } as AuthSessionUser,
   };
 }
@@ -110,7 +187,7 @@ export async function createContext(
 
   if (!user) {
     try {
-      user = await sdk.authenticateRequest(opts.req) as AuthSessionUser;
+      user = (await sdk.authenticateRequest(opts.req)) as AuthSessionUser;
     } catch {
       user = null;
     }

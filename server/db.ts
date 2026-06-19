@@ -4445,6 +4445,24 @@ export async function getCertificateLockStatus(blindId: string, checkedByOpenId?
   };
 }
 
+
+export async function getBlindMutationLockStatus(blindId: string): Promise<{ locked: boolean; reason: string; certificateNo?: string | null }> {
+  const certificatesForBlind = await getCertificates({ blindId });
+  const lockingCertificate = certificatesForBlind.find((certificate) =>
+    certificate.status === "Issued" || certificate.status === "Printed"
+  );
+
+  if (!lockingCertificate) {
+    return { locked: false, reason: "No issued or printed certificate is locking this blind." };
+  }
+
+  return {
+    locked: true,
+    certificateNo: lockingCertificate.certificateNo,
+    reason: `Blind is locked by certificate ${lockingCertificate.certificateNo}. Admin override is required before changing workflow data.`,
+  };
+}
+
 export async function getApprovalCenter(): Promise<ApprovalModel[]> {
   const db = await getDb();
   if (!db) return demoApprovals.map(item => enrichApprovalFromBlind(item));

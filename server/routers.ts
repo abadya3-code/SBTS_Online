@@ -15,7 +15,9 @@ import {
   requireAdmin,
   requireAreaAccess,
   requireCertificateUnlocked,
+  requirePermission,
   requirePhaseAuthorization,
+  requirePhaseSignatureBinding,
   requireProjectAccess,
 } from "./security/permissionGuard";
 import {
@@ -71,6 +73,7 @@ import {
   getProductionPersistenceStatus,
   getApprovalProfiles,
   getCertificateLockStatus,
+  getBlindMutationLockStatus,
 } from "./db";
 
 const workflowPhaseSchema = z.object({
@@ -122,9 +125,29 @@ const roleKeySchema = z.enum([
   "tiEngineer",
   "metalForeman",
 ]);
-const employeeStatusSchema = z.enum(["Pending", "Active", "Standby", "Unavailable", "Rejected", "Disabled"]);
-const passwordSchema = z.string().min(10).max(160).regex(/[A-Z]/, "Password must include an uppercase letter").regex(/[a-z]/, "Password must include a lowercase letter").regex(/[0-9]/, "Password must include a number");
-const usernameSchema = z.string().min(3).max(120).regex(/^[a-zA-Z0-9._-]+$/, "Use letters, numbers, dot, underscore, or dash only");
+const employeeStatusSchema = z.enum([
+  "Pending",
+  "Active",
+  "Standby",
+  "Unavailable",
+  "Rejected",
+  "Disabled",
+]);
+const passwordSchema = z
+  .string()
+  .min(10)
+  .max(160)
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[0-9]/, "Password must include a number");
+const usernameSchema = z
+  .string()
+  .min(3)
+  .max(120)
+  .regex(
+    /^[a-zA-Z0-9._-]+$/,
+    "Use letters, numbers, dot, underscore, or dash only"
+  );
 const areaStatusSchema = z.enum(["Active", "Standby", "Closed"]);
 const projectStatusSchema = z.enum([
   "Planning",
@@ -148,6 +171,29 @@ const phaseKeySchema = z.enum([
   "finalTight",
   "inspectionReady",
 ]);
+
+const routerPhaseMeta: Record<
+  z.infer<typeof phaseKeySchema>,
+  { label: string; owner: string; color: string }
+> = {
+  broken: {
+    label: "Broken / Preparation",
+    owner: "Coordinator",
+    color: "#ef4444",
+  },
+  assembly: { label: "Assembly", owner: "Technician", color: "#f59e0b" },
+  tightTorque: {
+    label: "Tight & Torque",
+    owner: "T&I Engineer",
+    color: "#eab308",
+  },
+  finalTight: { label: "Final Tight", owner: "QC Inspector", color: "#22c55e" },
+  inspectionReady: {
+    label: "Inspection Ready",
+    owner: "Inspection",
+    color: "#3b82f6",
+  },
+};
 
 const accessRoleModelSaveSchema = z.object({
   roleKey: roleKeySchema,
@@ -179,9 +225,66 @@ function textMatches(row: unknown, search?: string | null) {
   return haystack.includes(search.toLowerCase());
 }
 
+function isAdminContext(ctx: { user: any }) {
+  return ctx.user?.roleKey === "admin" || ctx.user?.role === "admin";
+}
+
+function scopedAreasForUser<T extends { id: string }>(
+  ctx: { user: any },
+  rows: T[]
+) {
+  if (isAdminContext(ctx)) return rows;
+  const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
+  return rows.filter(row => areaIds.has(row.id));
+}
+
+function scopedProjectsForUser<
+  T extends { id: string; areaId?: string | null },
+>(ctx: { user: any }, rows: T[]) {
+  if (isAdminContext(ctx)) return rows;
+  const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
+  const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
+  return rows.filter(
+    row =>
+      projectIds.has(row.id) || (row.areaId ? areaIds.has(row.areaId) : false)
+  );
+}
+
+function scopedBlindsForUser<
+  T extends { projectId: string; areaId?: string | null },
+>(ctx: { user: any }, rows: T[]) {
+  if (isAdminContext(ctx)) return rows;
+  const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
+  const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
+  return rows.filter(
+    row =>
+      projectIds.has(row.projectId) ||
+      (row.areaId ? areaIds.has(row.areaId) : false)
+  );
+}
+
+function scopedRecordsForUser<
+  T extends { projectId?: string | null; areaId?: string | null },
+>(ctx: { user: any }, rows: T[]) {
+  if (isAdminContext(ctx)) return rows;
+  const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
+  const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
+  return rows.filter(row => {
+    if (row.projectId && projectIds.has(row.projectId)) return true;
+    if (row.areaId && areaIds.has(row.areaId)) return true;
+    return false;
+  });
+}
+
 const certificateStatusSchema = z.enum(["Draft", "Issued", "Printed"]);
-const tagLayoutModeSchema = z.enum(["Operational Split", "Compact Field", "Large QR"]);
-const hexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Use HEX color like #0891b2");
+const tagLayoutModeSchema = z.enum([
+  "Operational Split",
+  "Compact Field",
+  "Large QR",
+]);
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "Use HEX color like #0891b2");
 
 const employeeInputSchema = z.object({
   badge: z.string().min(2).max(80),
@@ -215,7 +318,6 @@ const tagDesignerSettingsSchema = z.object({
   layoutMode: tagLayoutModeSchema,
 });
 
-
 const systemSettingsSchema = z.object({
   general: z.object({
     systemName: z.string().min(2).max(160),
@@ -241,7 +343,15 @@ const systemSettingsSchema = z.object({
     appDescription: z.string().max(500).optional().nullable(),
     dashboardHeroTitle: z.string().max(220).optional().nullable(),
     dashboardHeroDescription: z.string().max(800).optional().nullable(),
-    themeTemplate: z.enum(["Template 1", "Template 2 Classic", "Template 3 SAP", "Template 4 Custom", "Template 5 Command Pro"]).optional(),
+    themeTemplate: z
+      .enum([
+        "Template 1",
+        "Template 2 Classic",
+        "Template 3 SAP",
+        "Template 4 Custom",
+        "Template 5 Command Pro",
+      ])
+      .optional(),
     customAccentColor: hexColorSchema.optional(),
   }),
   tags: z.object({
@@ -275,17 +385,25 @@ const systemSettingsSchema = z.object({
     fontScale: z.number().int().min(80).max(150).optional(),
     layoutMode: z.enum(["Executive", "Classic", "Compact"]).optional(),
   }),
-  approvals: z.object({
-    profiles: z.array(z.object({
-      blindType: z.string().min(2).max(120),
-      requiredApprovers: z.array(z.string().min(2).max(120)).min(1),
-      requireAll: z.boolean(),
-      unlockCertificate: z.boolean(),
-    })).min(1),
-  }).optional(),
-  masterData: z.object({
-    blindTypes: z.array(z.string().min(2).max(120)).min(1),
-  }).optional(),
+  approvals: z
+    .object({
+      profiles: z
+        .array(
+          z.object({
+            blindType: z.string().min(2).max(120),
+            requiredApprovers: z.array(z.string().min(2).max(120)).min(1),
+            requireAll: z.boolean(),
+            unlockCertificate: z.boolean(),
+          })
+        )
+        .min(1),
+    })
+    .optional(),
+  masterData: z
+    .object({
+      blindTypes: z.array(z.string().min(2).max(120)).min(1),
+    })
+    .optional(),
   notifications: z.object({
     notifyOnNewBlind: z.boolean(),
     notifyOnPhaseUpdate: z.boolean(),
@@ -307,7 +425,12 @@ const systemSettingsSchema = z.object({
 
 const coreRouter = router({
   login: publicProcedure
-    .input(z.object({ badge: z.string().min(1).max(80), roleKey: roleKeySchema.optional() }))
+    .input(
+      z.object({
+        badge: z.string().min(1).max(80),
+        roleKey: roleKeySchema.optional(),
+      })
+    )
     .mutation(async ({ input }) => authenticateEmployeeSession(input)),
   sessionBinding: publicProcedure.query(async ({ ctx }) => ({
     authenticated: Boolean(ctx.user),
@@ -319,38 +442,56 @@ const coreRouter = router({
     productionBinding: Boolean(ctx.user),
   })),
   registerPasswordCredential: adminProcedure
-    .input(z.object({
-      employeeId: z.string().min(1).max(64),
-      username: usernameSchema,
-      password: passwordSchema,
-      recoveryEmail: z.string().email().max(320).optional().nullable(),
-      mustChangePassword: z.boolean().optional(),
-    }))
-    .mutation(async ({ input, ctx }) => registerPasswordCredential(input, ctx.user.openId)),
+    .input(
+      z.object({
+        employeeId: z.string().min(1).max(64),
+        username: usernameSchema,
+        password: passwordSchema,
+        recoveryEmail: z.string().email().max(320).optional().nullable(),
+        mustChangePassword: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) =>
+      registerPasswordCredential(input, ctx.user.openId)
+    ),
   registerEmployeeCredential: publicProcedure
-    .input(z.object({
-      badge: z.string().min(2).max(80),
-      fullName: z.string().min(2).max(180),
-      roleKey: roleKeySchema,
-      specialty: z.string().min(2).max(180).default("Pending profile update"),
-      department: z.string().min(2).max(140).default("Pending assignment"),
-      shift: z.string().min(1).max(80).default("Unassigned"),
-      status: employeeStatusSchema.default("Pending"),
-      photoUrl: z.string().max(420).optional().nullable(),
-      isCertified: z.boolean().optional(),
-      username: usernameSchema,
-      password: passwordSchema,
-      recoveryEmail: z.string().email().max(320),
-    }))
+    .input(
+      z.object({
+        badge: z.string().min(2).max(80),
+        fullName: z.string().min(2).max(180),
+        roleKey: roleKeySchema,
+        specialty: z.string().min(2).max(180).default("Pending profile update"),
+        department: z.string().min(2).max(140).default("Pending assignment"),
+        shift: z.string().min(1).max(80).default("Unassigned"),
+        status: employeeStatusSchema.default("Pending"),
+        photoUrl: z.string().max(420).optional().nullable(),
+        isCertified: z.boolean().optional(),
+        username: usernameSchema,
+        password: passwordSchema,
+        recoveryEmail: z.string().email().max(320),
+      })
+    )
     .mutation(async ({ input }) =>
-      createEmployeeWithCredential({ ...(input as any), status: "Pending", roleKey: "technician" }, "self-register")
+      createEmployeeWithCredential(
+        { ...(input as any), status: "Pending", roleKey: "technician" },
+        "self-register"
+      )
     ),
   passwordLogin: publicProcedure
-    .input(z.object({ username: usernameSchema, password: z.string().min(1).max(160) }))
+    .input(
+      z.object({
+        username: usernameSchema,
+        password: z.string().min(1).max(160),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       const result = await authenticatePasswordUser({
         ...input,
-        ipAddress: String(ctx.req.headers["x-forwarded-for"] ?? ctx.req.socket.remoteAddress ?? ""),
+        ipAddress: String(
+          ctx.req.headers["x-forwarded-for"] ??
+            ctx.req.socket.remoteAddress ??
+            ""
+        ),
         userAgent: ctx.req.headers["user-agent"] ?? null,
       });
       ctx.res.cookie(COOKIE_NAME, result.sessionId, {
@@ -362,29 +503,35 @@ const coreRouter = router({
   requestPasswordReset: publicProcedure
     .input(z.object({ username: usernameSchema }))
     .mutation(async ({ input }) => requestPasswordReset(input.username)),
-  persistenceStatus: protectedProcedure.query(async () => getProductionPersistenceStatus()),
+  persistenceStatus: protectedProcedure.query(async () =>
+    getProductionPersistenceStatus()
+  ),
   systemSettings: protectedProcedure.query(async () => getSystemSettings()),
   saveSystemSettings: adminProcedure
     .input(systemSettingsSchema)
-    .mutation(async ({ input, ctx }) => saveSystemSettings(input, ctx.user?.openId ?? "local-demo-user")),
+    .mutation(async ({ input, ctx }) =>
+      saveSystemSettings(input, ctx.user?.openId ?? "local-demo-user")
+    ),
   areas: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getAreas();
+    return scopedAreasForUser(ctx, await getAreas());
   }),
   projects: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getProjectsCore();
+    return scopedProjectsForUser(ctx, await getProjectsCore());
   }),
   blinds: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getBlindsCore();
+    return scopedBlindsForUser(ctx, await getBlindsCore());
   }),
   areasPage: protectedProcedure
     .input(paginationSchema.optional())
     .query(async ({ input, ctx }) => {
       requireActiveUser(ctx);
       const pageInput = paginationSchema.parse(input ?? {});
-      const rows = (await getAreas()).filter(row => textMatches(row, pageInput.search));
+      const rows = scopedAreasForUser(ctx, await getAreas()).filter(row =>
+        textMatches(row, pageInput.search)
+      );
       return paginateRows(rows, pageInput);
     }),
   projectsPage: protectedProcedure
@@ -392,7 +539,9 @@ const coreRouter = router({
     .query(async ({ input, ctx }) => {
       requireActiveUser(ctx);
       const pageInput = paginationSchema.parse(input ?? {});
-      const rows = (await getProjectsCore()).filter(row => textMatches(row, pageInput.search));
+      const rows = scopedProjectsForUser(ctx, await getProjectsCore()).filter(
+        row => textMatches(row, pageInput.search)
+      );
       return paginateRows(rows, pageInput);
     }),
   blindsPage: protectedProcedure
@@ -400,12 +549,55 @@ const coreRouter = router({
     .query(async ({ input, ctx }) => {
       requireActiveUser(ctx);
       const pageInput = paginationSchema.parse(input ?? {});
-      const rows = (await getBlindsCore()).filter(row => textMatches(row, pageInput.search));
+      const rows = scopedBlindsForUser(ctx, await getBlindsCore()).filter(row =>
+        textMatches(row, pageInput.search)
+      );
       return paginateRows(rows, pageInput);
     }),
   dashboardSummary: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getDashboardSummary();
+    if (isAdminContext(ctx)) return getDashboardSummary();
+
+    const scopedAreas = scopedAreasForUser(ctx, await getAreas());
+    const scopedProjects = scopedProjectsForUser(ctx, await getProjectsCore());
+    const scopedBlinds = scopedBlindsForUser(ctx, await getBlindsCore());
+    const completedBlinds = scopedBlinds.filter(
+      blind =>
+        blind.status === "Completed" ||
+        blind.currentPhaseKey === "inspectionReady"
+    ).length;
+    const inProgressBlinds = scopedBlinds.filter(
+      blind => blind.status === "In Progress"
+    ).length;
+    const pendingApprovalBlinds = scopedBlinds.filter(
+      blind => blind.status === "Pending Approval"
+    ).length;
+    const highPriorityBlinds = scopedBlinds.filter(
+      blind => blind.priority === "High" || blind.priority === "Critical"
+    ).length;
+
+    return {
+      totalAreas: scopedAreas.length,
+      totalProjects: scopedProjects.length,
+      totalBlinds: scopedBlinds.length,
+      completedBlinds,
+      inProgressBlinds,
+      pendingApprovalBlinds,
+      highPriorityBlinds,
+      completionPercent: scopedBlinds.length
+        ? Math.round((completedBlinds / scopedBlinds.length) * 100)
+        : 0,
+      phaseCounts: (
+        Object.keys(routerPhaseMeta) as Array<z.infer<typeof phaseKeySchema>>
+      ).map(key => ({
+        key,
+        label: routerPhaseMeta[key].label,
+        count: scopedBlinds.filter(blind => blind.currentPhaseKey === key)
+          .length,
+        owner: routerPhaseMeta[key].owner,
+        color: routerPhaseMeta[key].color,
+      })),
+    };
   }),
   employees: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
@@ -431,19 +623,27 @@ const coreRouter = router({
     .input(
       z.object({
         projectId: z.string().min(1).max(48),
-        assignments: z.array(
-          z.object({
-            phaseKey: phaseKeySchema,
-            roleKey: roleKeySchema,
-            authorizedEmployeeBadges: z.array(z.string().min(1).max(80)).min(1),
-            note: z.string().max(1000).optional().nullable(),
-          })
-        ).min(1),
+        assignments: z
+          .array(
+            z.object({
+              phaseKey: phaseKeySchema,
+              roleKey: roleKeySchema,
+              authorizedEmployeeBadges: z
+                .array(z.string().min(1).max(80))
+                .min(1),
+              note: z.string().max(1000).optional().nullable(),
+            })
+          )
+          .min(1),
       })
     )
-    .mutation(async ({ input, ctx }) =>
-      saveProjectPhaseAssignments(input, ctx.user?.openId ?? "local-demo-user")
-    ),
+    .mutation(async ({ input, ctx }) => {
+      requireProjectAccess(ctx, input.projectId);
+      return saveProjectPhaseAssignments(
+        input,
+        ctx.user?.openId ?? "local-demo-user"
+      );
+    }),
   phaseGatePreview: protectedProcedure
     .input(
       z.object({
@@ -452,6 +652,11 @@ const coreRouter = router({
       })
     )
     .query(async ({ input, ctx }) => {
+      const detail = await getBlindDetail(input.blindId);
+      if (detail) {
+        requireAreaAccess(ctx, detail.areaId);
+        requireProjectAccess(ctx, detail.projectId);
+      }
       requirePhaseAuthorization(ctx, input.targetPhaseKey);
       return getPhaseGatePreview(input.blindId, input.targetPhaseKey);
     }),
@@ -461,17 +666,21 @@ const coreRouter = router({
   }),
   approvalCenter: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getApprovalCenter();
+    return scopedBlindsForUser(ctx, await getApprovalCenter());
   }),
   certificateLock: protectedProcedure
     .input(z.object({ blindId: z.string().min(1).max(48) }))
     .query(async ({ input, ctx }) => {
-      requireActiveUser(ctx);
+      const detail = await getBlindDetail(input.blindId);
+      if (detail) {
+        requireAreaAccess(ctx, detail.areaId);
+        requireProjectAccess(ctx, detail.projectId);
+      }
       return getCertificateLockStatus(input.blindId, ctx.user?.openId ?? null);
     }),
   pendingApprovals: protectedProcedure.query(async ({ ctx }) => {
     requireActiveUser(ctx);
-    return getPendingApprovalInbox();
+    return scopedBlindsForUser(ctx, await getPendingApprovalInbox());
   }),
   approveRequest: protectedProcedure
     .input(
@@ -482,25 +691,59 @@ const coreRouter = router({
         remarks: z.string().max(1000).optional().nullable(),
       })
     )
-    .mutation(async ({ input, ctx }) =>
-      approveWorkflowRequest(input, ctx.user?.openId ?? "local-demo-user")
-    ),
-  torqueRecords: protectedProcedure
-    .input(z.object({ blindId: z.string().min(1).max(48).optional().nullable() }).optional())
-    .query(async ({ input, ctx }) => {
-      requireActiveUser(ctx);
-      return getTorqueRecords(input?.blindId);
+    .mutation(async ({ input, ctx }) => {
+      requirePermission(ctx, "workflow.approve");
+      const approval = (await getApprovalCenter()).find(
+        item => String(item.id) === String(input.approvalId)
+      );
+      if (approval) {
+        requireProjectAccess(ctx, approval.projectId);
+        const lock = await getBlindMutationLockStatus(approval.blindId);
+        requireCertificateUnlocked(lock.locked, lock.reason);
+      }
+      requirePhaseSignatureBinding(ctx, input.signatureId);
+      return approveWorkflowRequest(
+        input,
+        ctx.user?.openId ?? "local-demo-user"
+      );
     }),
-  certificates: protectedProcedure
+  torqueRecords: protectedProcedure
     .input(
-      z.object({
-        blindId: z.string().min(1).max(48).optional().nullable(),
-        projectId: z.string().min(1).max(48).optional().nullable(),
-      }).optional()
+      z
+        .object({ blindId: z.string().min(1).max(48).optional().nullable() })
+        .optional()
     )
     .query(async ({ input, ctx }) => {
       requireActiveUser(ctx);
-      return getCertificates(input);
+      if (input?.blindId) {
+        const detail = await getBlindDetail(input.blindId);
+        if (detail) {
+          requireAreaAccess(ctx, detail.areaId);
+          requireProjectAccess(ctx, detail.projectId);
+        }
+      }
+      return scopedBlindsForUser(ctx, await getTorqueRecords(input?.blindId));
+    }),
+  certificates: protectedProcedure
+    .input(
+      z
+        .object({
+          blindId: z.string().min(1).max(48).optional().nullable(),
+          projectId: z.string().min(1).max(48).optional().nullable(),
+        })
+        .optional()
+    )
+    .query(async ({ input, ctx }) => {
+      requireActiveUser(ctx);
+      if (input?.projectId) requireProjectAccess(ctx, input.projectId);
+      if (input?.blindId) {
+        const detail = await getBlindDetail(input.blindId);
+        if (detail) {
+          requireAreaAccess(ctx, detail.areaId);
+          requireProjectAccess(ctx, detail.projectId);
+        }
+      }
+      return scopedBlindsForUser(ctx, await getCertificates(input));
     }),
   issueCertificate: protectedProcedure
     .input(
@@ -510,12 +753,25 @@ const coreRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const lock = await getCertificateLockStatus(input.blindId, ctx.user?.openId ?? null);
+      requirePermission(ctx, "certificates.manage");
+      const detail = await getBlindDetail(input.blindId);
+      if (detail) {
+        requireAreaAccess(ctx, detail.areaId);
+        requireProjectAccess(ctx, detail.projectId);
+      }
+      const lock = await getCertificateLockStatus(
+        input.blindId,
+        ctx.user?.openId ?? null
+      );
       requireCertificateUnlocked(lock.locked, lock.reason);
       return issueCertificate(input, ctx.user?.openId ?? "local-demo-user");
     }),
   tagSettings: protectedProcedure
-    .input(z.object({ projectId: z.string().min(1).max(48).optional().nullable() }).optional())
+    .input(
+      z
+        .object({ projectId: z.string().min(1).max(48).optional().nullable() })
+        .optional()
+    )
     .query(async ({ input, ctx }) => {
       requireActiveUser(ctx);
       if (input?.projectId) requireProjectAccess(ctx, input.projectId);
@@ -531,48 +787,92 @@ const coreRouter = router({
     return getNotificationInbox();
   }),
   updateNotification: protectedProcedure
-    .input(z.object({
-      notificationId: z.string().min(1).max(80),
-      action: z.enum(["read", "archive", "restore"]),
-    }))
+    .input(
+      z.object({
+        notificationId: z.string().min(1).max(80),
+        action: z.enum(["read", "archive", "restore"]),
+      })
+    )
     .mutation(async ({ input, ctx }) => {
       requireActiveUser(ctx);
       return updateNotificationStatus(input);
     }),
   auditTrail: protectedProcedure
-    .input(z.object({
-      projectId: z.string().min(1).max(48).optional().nullable(),
-      blindId: z.string().min(1).max(48).optional().nullable(),
-      entityType: z.string().max(80).optional().nullable(),
-    }).optional())
+    .input(
+      z
+        .object({
+          projectId: z.string().min(1).max(48).optional().nullable(),
+          blindId: z.string().min(1).max(48).optional().nullable(),
+          entityType: z.string().max(80).optional().nullable(),
+        })
+        .optional()
+    )
     .query(async ({ input, ctx }) => {
-      requireActiveUser(ctx);
-      return getAuditTrail(input);
+      requirePermission(ctx, "audit.view");
+      if (input?.projectId) requireProjectAccess(ctx, input.projectId);
+      if (input?.blindId) {
+        const detail = await getBlindDetail(input.blindId);
+        if (detail) {
+          requireAreaAccess(ctx, detail.areaId);
+          requireProjectAccess(ctx, detail.projectId);
+        }
+      }
+      return scopedRecordsForUser(ctx, await getAuditTrail(input));
     }),
   recordTagPrint: protectedProcedure
-    .input(z.object({
-      projectId: z.string().min(1).max(48).optional().nullable(),
-      blindId: z.string().min(1).max(48).optional().nullable(),
-      scope: z.enum(["Project", "Blind"]),
-      tagCount: z.number().int().min(1).max(10000),
-    }))
-    .mutation(async ({ input, ctx }) => recordTagPrint(input, ctx.user?.openId ?? "local-demo-user")),
+    .input(
+      z.object({
+        projectId: z.string().min(1).max(48).optional().nullable(),
+        blindId: z.string().min(1).max(48).optional().nullable(),
+        scope: z.enum(["Project", "Blind"]),
+        tagCount: z.number().int().min(1).max(10000),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.projectId) requireProjectAccess(ctx, input.projectId);
+      if (input.blindId) {
+        const detail = await getBlindDetail(input.blindId);
+        if (detail) {
+          requireAreaAccess(ctx, detail.areaId);
+          requireProjectAccess(ctx, detail.projectId);
+        }
+      }
+      return recordTagPrint(input, ctx.user?.openId ?? "local-demo-user");
+    }),
   reportCenter: protectedProcedure
-    .input(z.object({ projectId: z.string().min(1).max(48).optional().nullable() }).optional())
+    .input(
+      z
+        .object({ projectId: z.string().min(1).max(48).optional().nullable() })
+        .optional()
+    )
     .query(async ({ input, ctx }) => {
-      requireActiveUser(ctx);
-      if (input?.projectId) requireProjectAccess(ctx, input.projectId);
-      return getReportCenter(input);
+      requirePermission(ctx, "reports.view");
+      if (input?.projectId) {
+        requireProjectAccess(ctx, input.projectId);
+        return getReportCenter(input);
+      }
+      if (isAdminContext(ctx)) return getReportCenter(input);
+      const firstProjectId = ctx.user?.projectIds?.[0];
+      if (!firstProjectId) {
+        return getReportCenter({ projectId: "__no_project_scope__" });
+      }
+      return getReportCenter({ projectId: firstProjectId });
     }),
   recordReportExport: protectedProcedure
-    .input(z.object({
-      projectId: z.string().min(1).max(48).optional().nullable(),
-      packageName: z.string().min(2).max(120),
-      fileType: z.enum(["CSV", "PDF", "Excel", "PowerPoint", "Print"]),
-      rowCount: z.number().int().min(0).max(100000),
-    }))
-    .mutation(async ({ input, ctx }) => recordReportExport(input, ctx.user?.openId ?? "local-demo-user")),
-  createArea: coordinatorProcedure
+    .input(
+      z.object({
+        projectId: z.string().min(1).max(48).optional().nullable(),
+        packageName: z.string().min(2).max(120),
+        fileType: z.enum(["CSV", "PDF", "Excel", "PowerPoint", "Print"]),
+        rowCount: z.number().int().min(0).max(100000),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      requirePermission(ctx, "reports.export");
+      if (input.projectId) requireProjectAccess(ctx, input.projectId);
+      return recordReportExport(input, ctx.user?.openId ?? "local-demo-user");
+    }),
+  createArea: adminProcedure
     .input(
       z.object({
         code: z.string().min(2).max(48),
@@ -595,7 +895,10 @@ const coreRouter = router({
         status: areaStatusSchema.default("Active"),
       })
     )
-    .mutation(async ({ input }) => updateArea(input)),
+    .mutation(async ({ input, ctx }) => {
+      requireAreaAccess(ctx, input.id);
+      return updateArea(input);
+    }),
   deleteArea: adminProcedure
     .input(
       z.object({
@@ -617,9 +920,11 @@ const coreRouter = router({
         maintenanceReason: z.string().max(1200).optional().nullable(),
       })
     )
-    .mutation(async ({ input, ctx }) =>
-      createProject(input, ctx.user?.openId ?? "local-demo-user")
-    ),
+    .mutation(async ({ input, ctx }) => {
+      requirePermission(ctx, "projects.create");
+      requireAreaAccess(ctx, input.areaId);
+      return createProject(input, ctx.user?.openId ?? "local-demo-user");
+    }),
   updateProject: coordinatorProcedure
     .input(
       z.object({
@@ -633,14 +938,25 @@ const coreRouter = router({
         maintenanceReason: z.string().max(1200).optional().nullable(),
       })
     )
-    .mutation(async ({ input }) => updateProject(input)),
+    .mutation(async ({ input, ctx }) => {
+      const current = (await getProjectsCore()).find(
+        project => project.id === input.id
+      );
+      if (current) requireProjectAccess(ctx, current.id);
+      requirePermission(ctx, "projects.edit");
+      requireAreaAccess(ctx, input.areaId);
+      return updateProject(input);
+    }),
   deleteProject: adminProcedure
     .input(
       z.object({
         id: z.string().min(1).max(48),
       })
     )
-    .mutation(async ({ input }) => deleteProject(input.id)),
+    .mutation(async ({ input, ctx }) => {
+      requireProjectAccess(ctx, input.id);
+      return deleteProject(input.id);
+    }),
   createBlind: protectedProcedure
     .input(
       z.object({
@@ -660,6 +976,7 @@ const coreRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      requirePermission(ctx, "blinds.create");
       requireAreaAccess(ctx, input.areaId);
       requireProjectAccess(ctx, input.projectId);
       return createBlind(input, ctx.user?.openId ?? "local-demo-user");
@@ -690,7 +1007,16 @@ const coreRouter = router({
       })
     )
     .mutation(async ({ input, ctx }) => {
+      requirePermission(ctx, "blinds.phase.change");
+      const detail = await getBlindDetail(input.blindId);
+      if (detail) {
+        requireAreaAccess(ctx, detail.areaId);
+        requireProjectAccess(ctx, detail.projectId);
+      }
       requirePhaseAuthorization(ctx, input.toPhaseKey);
+      requirePhaseSignatureBinding(ctx, input.signatureId);
+      const lock = await getBlindMutationLockStatus(input.blindId);
+      requireCertificateUnlocked(lock.locked, lock.reason);
       return moveBlindPhase(input, ctx.user?.openId ?? "local-demo-user");
     }),
 });
