@@ -10,6 +10,9 @@ export type UserProfilePrefs = {
   themeTemplate?: SbtsThemeTemplate;
   themePreferenceMode?: ThemePreferenceMode;
   customAccentColor?: string;
+  interfaceThemeMode?: "light" | "dark" | "system";
+  commandSearchEnabled?: boolean;
+  keyboardShortcutsEnabled?: boolean;
 };
 
 export function readUserProfile(): UserProfilePrefs {

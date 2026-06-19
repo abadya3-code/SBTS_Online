@@ -862,3 +862,57 @@ This global stylesheet establishes a precise petrol-blue operations interface wi
     .command-status-strip { justify-content:flex-start; }
   }
 }
+
+@layer components {
+  /* Sprint 17.9 — UX & Operator Navigation polish. These rules are intentionally additive and do not alter permission logic. */
+  html.dark .theme-modern,
+  html.dark .theme-custom {
+    background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.12), transparent 34rem), linear-gradient(180deg, #020617, #0f172a 54%, #111827);
+  }
+  html.dark .theme-classic {
+    background: linear-gradient(180deg, #0f172a, #111827);
+    color: #e5e7eb;
+  }
+  html.dark .theme-sap {
+    background: #0b1220;
+    color: #e5e7eb;
+  }
+  html.dark .sbts-card {
+    border-color: rgba(255,255,255,0.1) !important;
+    background: rgba(15,23,42,0.72) !important;
+    color: #e5e7eb;
+    box-shadow: 0 24px 80px rgba(2, 8, 23, 0.32) !important;
+  }
+  html.dark .sbts-main {
+    color: #e5e7eb;
+  }
+  html.dark .sbts-topbar .text-slate-950,
+  html.dark .sbts-topbar .text-slate-700,
+  html.dark .sbts-topbar .text-slate-600 {
+    color: #e5e7eb !important;
+  }
+  html.dark .sbts-topbar .text-slate-500 {
+    color: #94a3b8 !important;
+  }
+  html.dark .sbts-topbar .bg-white {
+    background-color: rgba(15,23,42,0.82) !important;
+  }
+  html.dark .sbts-topbar .border-slate-200 {
+    border-color: rgba(255,255,255,0.1) !important;
+  }
+  .command-breadcrumb {
+    margin-bottom: 1rem;
+    border-color: rgba(255,255,255,0.1) !important;
+    background: rgba(2,8,23,0.35) !important;
+    color: rgba(226,232,240,0.82) !important;
+  }
+  .classic-theme-toggle {
+    box-shadow: none !important;
+  }
+  @media print {
+    [aria-label="Operator breadcrumb"],
+    [title^="Theme mode"] {
+      display: none !important;
+    }
+  }
+}

@@ -8,6 +8,9 @@ import { themeClassFor } from "@/lib/themeEngine";
 import { Activity, BarChart3, Bell, FolderKanban, GitBranch, Inbox, LayoutDashboard, Layers3, LogOut, Mail, MapPinned, Menu, Settings, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { getCorporateIdentity, initialsFromCompanyName } from "@/lib/corporateIdentity";
+import { KeyboardShortcuts } from "@/components/navigation/KeyboardShortcuts";
+import { OperatorBreadcrumbs } from "@/components/navigation/OperatorBreadcrumbs";
+import { ThemeModeToggle } from "@/components/preferences/ThemeModeToggle";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -100,6 +103,8 @@ export function AppShell({ children }: AppShellProps) {
     ].filter(group => group.items.length > 0);
 
     return (
+      <>
+      <KeyboardShortcuts navItems={visibleNavItems} />
       <div data-sbts-theme={themeTemplate} className="theme-command-pro min-h-screen text-slate-100" style={{ "--sbts-accent": customAccent } as CSSProperties}>
         <div className="command-shell min-h-screen">
           <aside className="command-sidebar hidden lg:flex">
@@ -160,6 +165,7 @@ export function AppShell({ children }: AppShellProps) {
               </div>
               <div className="command-status-strip">
                 <button onClick={() => setLocation("/profile")} className="command-status-pill"><SlidersHorizontal className="h-4 w-4" /> {profile.fullName}</button>
+                <ThemeModeToggle compact />
                 <span className="command-status-pill">{profile.roleLabel}</span>
                 <span className="command-status-pill command-status-live"><span /> {sessionModeLabel}</span>
                 <Link href="/inbox" className="command-status-icon" aria-label="Inbox"><Inbox className="h-4 w-4" /></Link>
@@ -172,15 +178,18 @@ export function AppShell({ children }: AppShellProps) {
               {visibleNavItems.map((item) => { const Icon = item.icon; const active = isActiveRoute(location, item.href); return <Link key={item.href} href={item.href} className={`command-mobile-chip ${active ? "active" : ""}`}><Icon className="h-4 w-4" /> {item.label}</Link>; })}
             </nav>
 
-            <main className="command-main">{children}</main>
+            <main className="command-main"><OperatorBreadcrumbs className="command-breadcrumb" />{children}</main>
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   if (themeTemplate === "Template 2 Classic") {
     return (
+      <>
+      <KeyboardShortcuts navItems={visibleNavItems} />
       <div data-sbts-theme={themeTemplate} className="theme-classic min-h-screen text-slate-950" style={{ "--sbts-accent": customAccent } as CSSProperties}>
         <div className="classic-shell min-h-screen">
           <header className="classic-topbar">
@@ -197,6 +206,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
             <div className="classic-topbar-right">
               <div className="classic-right-text"><b>{corporate.companyShortName || corporate.companyName}</b><span>{corporate.companySubtitle}</span></div>
+              <ThemeModeToggle compact className="classic-theme-toggle" />
               <Link href="/inbox" className="classic-top-icon" aria-label="Inbox"><Bell className="h-4 w-4" /></Link>
               <div className="classic-company-mark">{identityLogo ? <img src={identityLogo} alt="Company logo" /> : identityInitials}</div>
             </div>
@@ -233,15 +243,18 @@ export function AppShell({ children }: AppShellProps) {
                 <Link href="/inbox" className="classic-chip"><Mail className="h-4 w-4" /> Inbox</Link>
                 <button onClick={() => setLocation("/profile")} className="classic-chip"><SlidersHorizontal className="h-4 w-4" /> {profile.fullName}</button>
               </div>
-              <main className="classic-main">{children}</main>
+              <main className="classic-main"><OperatorBreadcrumbs />{children}</main>
             </div>
           </div>
         </div>
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    <KeyboardShortcuts navItems={visibleNavItems} />
     <div data-sbts-theme={themeTemplate} className={`min-h-screen ${themeClass} text-slate-900`} style={{ "--sbts-accent": customAccent } as CSSProperties}>
       <div className="flex min-h-screen">
         <aside className="sbts-sidebar sticky top-0 hidden h-screen w-72 shrink-0 border-r border-white/10 bg-slate-950 text-white shadow-[20px_0_60px_rgba(15,23,42,0.22)] lg:block">
@@ -276,14 +289,15 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sbts-topbar sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
+          <header className="sbts-topbar sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 px-4 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/85 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <button className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm lg:hidden" aria-label="Open navigation"><Menu className="h-5 w-5" /></button>
                 <div><div className="text-sm font-black text-slate-950 sm:text-base">{systemName}</div><div className="text-xs font-semibold text-slate-500">{corporate.showName ? corporate.companyName + " · " : ""}{facilityName} · {departmentName}</div></div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setLocation("/profile")} className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 shadow-sm sm:inline-flex"><SlidersHorizontal className="h-4 w-4" /> {profile.fullName} • {profile.roleLabel}</button>
+                <ThemeModeToggle compact />
+                <button onClick={() => setLocation("/profile")} className="hidden items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-extrabold text-slate-600 shadow-sm dark:border-white/10 dark:bg-slate-900 dark:text-slate-200 sm:inline-flex"><SlidersHorizontal className="h-4 w-4" /> {profile.fullName} • {profile.roleLabel}</button>
                 <Link href="/inbox" className="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-600 shadow-sm sm:inline-flex"><Mail className="h-4 w-4" /> Inbox</Link><Link href="/inbox" className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm" aria-label="Notifications"><Bell className="h-5 w-5" /><span className="absolute right-2.5 top-2.5 h-2.5 w-2.5 rounded-full bg-cyan-500 ring-2 ring-white" /></Link>
                 <button onClick={() => { clearAuthSession(); setLocation("/login"); }} className="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-600 shadow-sm hover:border-rose-200 hover:text-rose-700 sm:inline-flex" aria-label="Logout"><LogOut className="h-4 w-4" /> Logout</button>
               </div>
@@ -292,9 +306,10 @@ export function AppShell({ children }: AppShellProps) {
               {visibleNavItems.map((item) => { const Icon = item.icon; const active = isActiveRoute(location, item.href); return <Link key={item.href} href={item.href} className={`inline-flex shrink-0 items-center gap-2 rounded-2xl px-3 py-2 text-xs font-extrabold ${active ? "bg-slate-950 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}><Icon className="h-4 w-4" /> {item.label}</Link>; })}
             </nav>
           </header>
-          <main className="sbts-main container flex-1 py-6 sm:py-8">{children}</main>
+          <main className="sbts-main container flex-1 py-6 sm:py-8"><OperatorBreadcrumbs />{children}</main>
         </div>
       </div>
     </div>
+    </>
   );
 }

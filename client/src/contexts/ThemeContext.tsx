@@ -1,10 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-type Theme = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
+export type EffectiveTheme = "light" | "dark";
 
 interface ThemeContextType {
-  theme: Theme;
-  toggleTheme?: () => void;
+  theme: EffectiveTheme;
+  effectiveTheme: EffectiveTheme;
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
   switchable: boolean;
 }
 
@@ -12,44 +16,83 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  defaultTheme?: Theme;
+  defaultTheme?: ThemeMode;
   switchable?: boolean;
+}
+
+const THEME_MODE_STORAGE_KEY = "sbts.themeMode.v1";
+const LEGACY_THEME_STORAGE_KEY = "theme";
+
+function getSystemTheme(): EffectiveTheme {
+  if (typeof window === "undefined") return "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function readInitialThemeMode(defaultTheme: ThemeMode): ThemeMode {
+  if (typeof window === "undefined") return defaultTheme;
+  const stored = window.localStorage.getItem(THEME_MODE_STORAGE_KEY) as ThemeMode | null;
+  if (stored === "light" || stored === "dark" || stored === "system") return stored;
+
+  const legacy = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY) as EffectiveTheme | null;
+  if (legacy === "light" || legacy === "dark") return legacy;
+
+  return defaultTheme;
+}
+
+function resolveEffectiveTheme(mode: ThemeMode, systemTheme: EffectiveTheme): EffectiveTheme {
+  return mode === "system" ? systemTheme : mode;
 }
 
 export function ThemeProvider({
   children,
-  defaultTheme = "light",
-  switchable = false,
+  defaultTheme = "system",
+  switchable = true,
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
-    }
-    return defaultTheme;
-  });
+  const [systemTheme, setSystemTheme] = useState<EffectiveTheme>(() => getSystemTheme());
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(() => readInitialThemeMode(defaultTheme));
+
+  const effectiveTheme = useMemo(
+    () => resolveEffectiveTheme(themeMode, systemTheme),
+    [themeMode, systemTheme],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => setSystemTheme(query.matches ? "dark" : "light");
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    root.classList.toggle("dark", effectiveTheme === "dark");
+    root.dataset.sbtsColorMode = effectiveTheme;
 
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      window.localStorage.setItem(THEME_MODE_STORAGE_KEY, themeMode);
+      window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, effectiveTheme);
     }
-  }, [theme, switchable]);
 
-  const toggleTheme = switchable
-    ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
-      }
-    : undefined;
+    window.dispatchEvent(new CustomEvent("sbts-theme-mode-changed", {
+      detail: { mode: themeMode, effectiveTheme },
+    }));
+  }, [effectiveTheme, themeMode, switchable]);
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setThemeModeState(mode);
+  };
+
+  const toggleTheme = () => {
+    setThemeModeState((prev) => {
+      const current = resolveEffectiveTheme(prev, getSystemTheme());
+      return current === "dark" ? "light" : "dark";
+    });
+  };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme: effectiveTheme, effectiveTheme, themeMode, setThemeMode, toggleTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );
