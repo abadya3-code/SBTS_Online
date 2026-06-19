@@ -35,6 +35,7 @@ export const adminOnlyRoutePrefixes = [
   "/access-control",
   "/workflow-studio",
   "/audit",
+  "/monitoring",
 ];
 
 export function isAdminProfile(profile?: Pick<SecurityProfile, "roleKey" | "status"> | null) {

@@ -27,6 +27,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import RegisterUser from "./pages/RegisterUser";
 import UserProfile from "./pages/UserProfile";
+import PerformanceMonitoring from "./pages/PerformanceMonitoring";
 import { readAuthSession } from "@/lib/auth";
 import { Route, Switch, useLocation } from "wouter";
 import { useEffect, useState, type ReactNode } from "react";
@@ -88,6 +89,7 @@ function Router() {
         <Route path="/workflow-studio">{() => <AdminRouteGate title="Workflow Studio is admin locked"><WorkflowStudio /></AdminRouteGate>}</Route>
         <Route path="/users">{() => <AdminRouteGate title="User Management is admin locked"><UserManagement /></AdminRouteGate>}</Route>
         <Route path="/access-control">{() => <AdminRouteGate title="Access Control is admin locked"><AccessControl /></AdminRouteGate>}</Route>
+        <Route path="/monitoring">{() => <AdminRouteGate title="Performance Monitoring is admin locked"><PerformanceMonitoring /></AdminRouteGate>}</Route>
           <Route component={NotFound} />
         </Switch>
       </AppShell>

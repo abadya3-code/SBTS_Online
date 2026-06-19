@@ -11,6 +11,14 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getProductionPersistenceStatus } from "../db";
+import {
+  captureClientErrorPayload,
+  captureServerException,
+  captureTrpcError,
+  initServerObservability,
+  observabilityErrorMiddleware,
+  observabilityRequestMiddleware,
+} from "./observability";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,10 +40,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  await initServerObservability();
   const app = express();
   const server = createServer(app);
   // Sprint 17.7: production hardening for public Railway exposure.
   app.set("trust proxy", 1);
+  // Sprint 17.10: request-level observability for monitoring dashboard and error logging.
+  app.use(observabilityRequestMiddleware);
   app.use(
     helmet({
       contentSecurityPolicy: false,
@@ -72,6 +83,16 @@ async function startServer() {
     next();
   });
 
+  app.post("/api/client-error", async (req, res) => {
+    try {
+      captureClientErrorPayload(req.body, req);
+      res.status(202).json({ ok: true });
+    } catch (error) {
+      captureServerException(error, { route: "POST /api/client-error" });
+      res.status(202).json({ ok: false });
+    }
+  });
+
   app.get("/api/health", async (_req, res) => {
     try {
       const persistence = await getProductionPersistenceStatus();
@@ -105,8 +126,18 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError({ error, path, type, ctx }) {
+        captureTrpcError({
+          path: path ?? "unknown",
+          type,
+          error,
+          userOpenId: ctx?.user?.openId ?? null,
+        });
+      },
     })
   );
+  app.use(observabilityErrorMiddleware);
+
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

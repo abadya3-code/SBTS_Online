@@ -1,5 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { z } from "zod";
+import type { AuthSessionUser } from "./_core/context";
+import { getRuntimeMonitoringSnapshot } from "./_core/observability";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import {
@@ -71,6 +73,7 @@ import {
   getSystemSettings,
   saveSystemSettings,
   getProductionPersistenceStatus,
+  getObservabilityDatabaseSnapshot,
   getApprovalProfiles,
   getCertificateLockStatus,
   getBlindMutationLockStatus,
@@ -225,12 +228,14 @@ function textMatches(row: unknown, search?: string | null) {
   return haystack.includes(search.toLowerCase());
 }
 
-function isAdminContext(ctx: { user: any }) {
+type RouterUserContext = { user: AuthSessionUser | null };
+
+function isAdminContext(ctx: RouterUserContext) {
   return ctx.user?.roleKey === "admin" || ctx.user?.role === "admin";
 }
 
 function scopedAreasForUser<T extends { id: string }>(
-  ctx: { user: any },
+  ctx: RouterUserContext,
   rows: T[]
 ) {
   if (isAdminContext(ctx)) return rows;
@@ -240,7 +245,7 @@ function scopedAreasForUser<T extends { id: string }>(
 
 function scopedProjectsForUser<
   T extends { id: string; areaId?: string | null },
->(ctx: { user: any }, rows: T[]) {
+>(ctx: RouterUserContext, rows: T[]) {
   if (isAdminContext(ctx)) return rows;
   const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
   const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
@@ -252,7 +257,7 @@ function scopedProjectsForUser<
 
 function scopedBlindsForUser<
   T extends { projectId: string; areaId?: string | null },
->(ctx: { user: any }, rows: T[]) {
+>(ctx: RouterUserContext, rows: T[]) {
   if (isAdminContext(ctx)) return rows;
   const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
   const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
@@ -265,7 +270,7 @@ function scopedBlindsForUser<
 
 function scopedRecordsForUser<
   T extends { projectId?: string | null; areaId?: string | null },
->(ctx: { user: any }, rows: T[]) {
+>(ctx: RouterUserContext, rows: T[]) {
   if (isAdminContext(ctx)) return rows;
   const projectIds = new Set<string>(ctx.user?.projectIds ?? []);
   const areaIds = new Set<string>(ctx.user?.areaIds ?? []);
@@ -436,9 +441,9 @@ const coreRouter = router({
     authenticated: Boolean(ctx.user),
     openId: ctx.user?.openId ?? null,
     role: ctx.user?.role ?? null,
-    employeeId: (ctx.user as any)?.employeeId ?? null,
-    badge: (ctx.user as any)?.badge ?? null,
-    roleKey: (ctx.user as any)?.roleKey ?? null,
+    employeeId: ctx.user?.employeeId ?? null,
+    badge: ctx.user?.badge ?? null,
+    roleKey: ctx.user?.roleKey ?? null,
     productionBinding: Boolean(ctx.user),
   })),
   registerPasswordCredential: adminProcedure
@@ -471,12 +476,13 @@ const coreRouter = router({
         recoveryEmail: z.string().email().max(320),
       })
     )
-    .mutation(async ({ input }) =>
-      createEmployeeWithCredential(
-        { ...(input as any), status: "Pending", roleKey: "technician" },
+    .mutation(async ({ input }) => {
+      const { roleKey: _requestedRoleKey, status: _requestedStatus, ...safeInput } = input;
+      return createEmployeeWithCredential(
+        { ...safeInput, status: "Pending", roleKey: "technician" },
         "self-register"
-      )
-    ),
+      );
+    }),
   passwordLogin: publicProcedure
     .input(
       z.object({
@@ -506,6 +512,20 @@ const coreRouter = router({
   persistenceStatus: protectedProcedure.query(async () =>
     getProductionPersistenceStatus()
   ),
+  performanceMonitoring: adminProcedure.query(async ({ ctx }) => {
+    requireAdmin(ctx);
+    const [runtime, database, persistence] = await Promise.all([
+      Promise.resolve(getRuntimeMonitoringSnapshot()),
+      getObservabilityDatabaseSnapshot(),
+      getProductionPersistenceStatus(),
+    ]);
+    return {
+      runtime,
+      database,
+      persistence,
+      generatedAt: new Date().toISOString(),
+    };
+  }),
   systemSettings: protectedProcedure.query(async () => getSystemSettings()),
   saveSystemSettings: adminProcedure
     .input(systemSettingsSchema)
@@ -1033,7 +1053,7 @@ const accessControlRouter = router({
       return saveAccessRoleModel(input, {
         openId: ctx.user?.openId ?? null,
         name: ctx.user?.name ?? "System Admin",
-        roleKey: (ctx.user as any)?.roleKey ?? ctx.user?.role ?? "admin",
+        roleKey: ctx.user?.roleKey ?? ctx.user?.role ?? "admin",
       });
     }),
 });

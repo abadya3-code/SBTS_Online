@@ -1,7 +1,7 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import type { TrpcContext } from "./context";
+import type { AuthSessionUser, TrpcContext } from "./context";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -44,8 +44,12 @@ function userFriendlyErrorMessage(code: string, fallback: string) {
 export const router = t.router;
 export const publicProcedure = t.procedure;
 
-function getRoleKey(user: NonNullable<TrpcContext["user"]>) {
-  return (user as any).roleKey ?? (user.role === "admin" ? "admin" : null);
+function getRoleKey(user: AuthSessionUser) {
+  return user.roleKey ?? (user.role === "admin" ? "admin" : null);
+}
+
+function getUserStatus(user: AuthSessionUser) {
+  return user.status ?? "Active";
 }
 
 const requireUser = t.middleware(async opts => {
@@ -55,7 +59,7 @@ const requireUser = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
-  const status = (ctx.user as any).status ?? "Active";
+  const status = getUserStatus(ctx.user);
   if (status !== "Active") {
     throw new TRPCError({
       code: "FORBIDDEN",
@@ -81,7 +85,7 @@ export const adminProcedure = t.procedure.use(
       throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
     }
 
-    const status = (ctx.user as any).status ?? "Active";
+    const status = getUserStatus(ctx.user);
     if (status !== "Active") {
       throw new TRPCError({
         code: "FORBIDDEN",
@@ -109,7 +113,7 @@ export function roleProcedure(allowedRoleKeys: string[]) {
       if (!ctx.user) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
       }
-      const status = (ctx.user as any).status ?? "Active";
+      const status = getUserStatus(ctx.user);
       if (status !== "Active") {
         throw new TRPCError({
           code: "FORBIDDEN",

@@ -5703,3 +5703,90 @@ export async function getDashboardSummary(): Promise<DashboardSummaryModel> {
     phaseCounts,
   };
 }
+
+export type ObservabilityDatabaseSnapshot = {
+  databaseAvailable: boolean;
+  generatedAt: string;
+  securityEventsLast24h: number;
+  criticalSecurityEventsLast24h: number;
+  loginFailuresLast24h: number;
+  forbiddenEventsLast24h: number;
+  persistenceWarningsLast24h: number;
+  lastSecurityEvents: Array<{
+    id: number;
+    eventType: string;
+    severity: string;
+    summary: string;
+    roleKey?: string | null;
+    createdAt: string;
+  }>;
+  lastPersistenceEvents: Array<{
+    id: number;
+    eventType: string;
+    domain: string;
+    status: string;
+    summary: string;
+    createdAt: string;
+  }>;
+};
+
+export async function getObservabilityDatabaseSnapshot(): Promise<ObservabilityDatabaseSnapshot> {
+  const db = await getDb();
+  const generatedAt = new Date().toISOString();
+  if (!db) {
+    return {
+      databaseAvailable: false,
+      generatedAt,
+      securityEventsLast24h: 0,
+      criticalSecurityEventsLast24h: 0,
+      loginFailuresLast24h: 0,
+      forbiddenEventsLast24h: 0,
+      persistenceWarningsLast24h: 0,
+      lastSecurityEvents: [],
+      lastPersistenceEvents: [],
+    };
+  }
+
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const [securityRows, persistenceRows] = await Promise.all([
+    db.select().from(securityEvents),
+    db.select().from(productionPersistenceEvents),
+  ]);
+
+  const recentSecurity = securityRows.filter(row => new Date(row.createdAt).getTime() >= since);
+  const recentPersistence = persistenceRows.filter(row => new Date(row.createdAt).getTime() >= since);
+
+  return {
+    databaseAvailable: true,
+    generatedAt,
+    securityEventsLast24h: recentSecurity.length,
+    criticalSecurityEventsLast24h: recentSecurity.filter(row => row.severity === "critical" || row.severity === "error").length,
+    loginFailuresLast24h: recentSecurity.filter(row => row.eventType.includes("LOGIN_FAILED") || row.eventType.includes("PASSWORD_LOGIN_FAILED")).length,
+    forbiddenEventsLast24h: recentSecurity.filter(row => row.eventType.includes("FORBIDDEN") || row.eventType.includes("DENIED") || row.eventType.includes("LOCK_BLOCKED")).length,
+    persistenceWarningsLast24h: recentPersistence.filter(row => row.status === "Warning" || row.status === "Error").length,
+    lastSecurityEvents: securityRows
+      .slice()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 15)
+      .map(row => ({
+        id: row.id,
+        eventType: row.eventType,
+        severity: row.severity,
+        summary: row.summary,
+        roleKey: row.roleKey,
+        createdAt: new Date(row.createdAt).toISOString(),
+      })),
+    lastPersistenceEvents: persistenceRows
+      .slice()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 15)
+      .map(row => ({
+        id: row.id,
+        eventType: row.eventType,
+        domain: row.domain,
+        status: row.status,
+        summary: row.summary,
+        createdAt: new Date(row.createdAt).toISOString(),
+      })),
+  };
+}

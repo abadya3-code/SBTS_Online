@@ -241,3 +241,29 @@ Key areas:
 - Tag Designer Pro layer controls
 - Professional tag/certificate/report print CSS
 - Safer certificate date formatting
+
+## Sprint 17.10 / 17.11 Notes
+
+This package adds Observability & Error Logging plus a first Type Safety cleanup layer.
+
+Run:
+
+```bash
+pnpm install --no-frozen-lockfile
+pnpm audit:17.10
+pnpm audit:17.11
+pnpm build
+```
+
+Optional Railway variables for Sentry:
+
+```env
+SENTRY_DSN=
+SENTRY_ENVIRONMENT=production
+SENTRY_RELEASE=17.10
+VITE_SENTRY_DSN=
+VITE_SENTRY_ENVIRONMENT=production
+VITE_SENTRY_RELEASE=17.10
+```
+
+The `/monitoring` page is Admin-only and does not change workflow permissions.

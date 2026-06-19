@@ -51,3 +51,13 @@ Use:
 samples/pilot_sample_data.json
 samples/pilot_blinds_import_template.csv
 ```
+
+## Sprint 17.10 / 17.11 Quick Check
+
+1. Run `pnpm install --no-frozen-lockfile` after copying the package.
+2. Run `pnpm audit:17.10`.
+3. Run `pnpm audit:17.11`.
+4. Run `pnpm build`.
+5. Deploy to Railway.
+6. Login as Admin and open `/monitoring`.
+7. Confirm the dashboard displays API metrics, database status, recent errors, and security events.

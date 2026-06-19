@@ -38,7 +38,12 @@
     "audit:17.8.3": "node scripts/sprint17-8-3-security-permission-static.mjs",
     "qa:17.8.3": "pnpm audit:17.8.3 && pnpm check && pnpm build",
     "audit:17.9": "node scripts/sprint17-9-ux-navigation-static.mjs",
-    "qa:17.9": "pnpm audit:17.9 && pnpm check && pnpm build"
+    "qa:17.9": "pnpm audit:17.9 && pnpm check && pnpm build",
+    "audit:17.10": "node scripts/sprint17-10-observability-static.mjs",
+    "qa:17.10": "pnpm audit:17.10 && pnpm check && pnpm build",
+    "audit:17.11": "node scripts/sprint17-11-type-safety-static.mjs",
+    "qa:17.11": "pnpm audit:17.11 && pnpm check && pnpm build",
+    "qa:17.10-17.11": "pnpm audit:17.10 && pnpm audit:17.11 && pnpm check && pnpm build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -107,7 +112,9 @@
     "wouter": "^3.3.5",
     "zod": "^4.1.12",
     "helmet": "^8.0.0",
-    "express-rate-limit": "^7.5.0"
+    "express-rate-limit": "^7.5.0",
+    "@sentry/node": "^8.55.0",
+    "@sentry/react": "^8.55.0"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",

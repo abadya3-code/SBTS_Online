@@ -5,7 +5,7 @@ import { isAdminProfile, readSecurityProfile, type SecurityProfile } from "@/lib
 import { clearAuthSession, readAuthSession } from "@/lib/auth";
 import { readUserProfile } from "@/lib/userProfile";
 import { themeClassFor } from "@/lib/themeEngine";
-import { Activity, BarChart3, Bell, FolderKanban, GitBranch, Inbox, LayoutDashboard, Layers3, LogOut, Mail, MapPinned, Menu, Settings, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
+import { Activity, BarChart3, Bell, FolderKanban, Gauge, GitBranch, Inbox, LayoutDashboard, Layers3, LogOut, Mail, MapPinned, Menu, Settings, ShieldCheck, SlidersHorizontal, UsersRound } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { getCorporateIdentity, initialsFromCompanyName } from "@/lib/corporateIdentity";
 import { KeyboardShortcuts } from "@/components/navigation/KeyboardShortcuts";
@@ -19,6 +19,7 @@ const navItems = [
   { href: "/slip-blinds", label: "Slip Blind", icon: Layers3 },
   { href: "/approvals", label: "Approval Center", icon: Inbox },
   { href: "/audit", label: "Audit Trail", icon: Activity, adminOnly: true },
+  { href: "/monitoring", label: "Monitoring", icon: Gauge, adminOnly: true },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings, adminOnly: true },
   { href: "/workflow-studio", label: "Workflow Studio", icon: GitBranch, adminOnly: true },
@@ -97,7 +98,7 @@ export function AppShell({ children }: AppShellProps) {
   if (themeTemplate === "Template 5 Command Pro") {
     const groupedNav = [
       { label: "Operations", items: visibleNavItems.filter(item => ["/dashboard", "/areas", "/projects", "/slip-blinds"].includes(item.href)) },
-      { label: "Control", items: visibleNavItems.filter(item => ["/approvals", "/workflow-studio", "/audit"].includes(item.href)) },
+      { label: "Control", items: visibleNavItems.filter(item => ["/approvals", "/workflow-studio", "/audit", "/monitoring"].includes(item.href)) },
       { label: "Intelligence", items: visibleNavItems.filter(item => ["/reports"].includes(item.href)) },
       { label: "Administration", items: visibleNavItems.filter(item => ["/settings", "/users", "/access-control"].includes(item.href)) },
     ].filter(group => group.items.length > 0);
