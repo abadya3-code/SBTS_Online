@@ -32,7 +32,9 @@
     "polish:static": "node scripts/sprint17-polish-static.mjs",
     "qa:polish": "pnpm qa:static && pnpm auth:static && pnpm approval:static && pnpm print:static && pnpm pilot:static && pnpm polish:static",
     "audit:17.7": "node scripts/sprint17-7-audit-closure-static.mjs",
-    "qa:17.7": "pnpm audit:17.7 && pnpm check && pnpm build"
+    "qa:17.7": "pnpm audit:17.7 && pnpm check && pnpm build",
+    "audit:17.8.2": "node scripts/sprint17-8-2-access-control-static.mjs",
+    "qa:17.8.2": "pnpm audit:17.8.2 && pnpm check && pnpm build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

@@ -2,12 +2,13 @@
 Design Philosophy: Industrial Command Center Minimalism.
 Access Control Center centralizes scattered settings, user permissions, workflow ownership, and menu visibility into one maintainable role-based operating model.
 */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Check, ChevronRight, Copy, Eye, GitBranch, LockKeyhole, Plus, Save, ShieldCheck, SlidersHorizontal, Users } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
-import { initialRoles, menuCatalog, permissionGroups, phases, type RoleModel } from "@/lib/mockData";
+import { menuCatalog, permissionGroups, phases, type RoleModel } from "@/lib/mockData";
+import { trpc } from "@/lib/trpc";
 
 const tabs = [
   { key: "system", label: "System Access", icon: LockKeyhole },
@@ -27,12 +28,40 @@ function toggleItem(items: string[], key: string) {
 }
 
 export default function AccessControl() {
-  const [roles, setRoles] = useState<RoleModel[]>(initialRoles);
-  const [activeRoleKey, setActiveRoleKey] = useState(initialRoles[0].key);
+  const utils = trpc.useUtils();
+  const accessModelQuery = trpc.accessControl.model.useQuery(undefined, { staleTime: 30_000 });
+  const saveRoleModelMutation = trpc.accessControl.saveRoleModel.useMutation({
+    onSuccess: () => {
+      toast.success("Access control model saved to database.");
+      void utils.accessControl.model.invalidate();
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to save access control model.");
+    },
+  });
+
+  const [roles, setRoles] = useState<RoleModel[]>([]);
+  const [activeRoleKey, setActiveRoleKey] = useState<string>("");
   const [activeTab, setActiveTab] = useState<TabKey>("system");
 
+  useEffect(() => {
+    const dbRoles = accessModelQuery.data?.roles;
+    if (!dbRoles?.length) return;
+    setRoles(dbRoles as RoleModel[]);
+    setActiveRoleKey((current) => current || dbRoles[0].key);
+  }, [accessModelQuery.data?.roles]);
+
   const activeRole = useMemo(() => roles.find((role) => role.key === activeRoleKey) ?? roles[0], [roles, activeRoleKey]);
-  const allPermissionsCount = permissionGroups.flatMap((group) => group.permissions).length;
+  const accessPermissionGroups = useMemo(() => {
+    const dbGroups = accessModelQuery.data?.permissionGroups;
+    if (!dbGroups?.length) return permissionGroups;
+
+    return dbGroups.map((group) => ({
+      ...group,
+      icon: permissionGroups.find((item) => item.group === group.group)?.icon ?? LockKeyhole,
+    }));
+  }, [accessModelQuery.data?.permissionGroups]);
+  const allPermissionsCount = Math.max(1, accessPermissionGroups.flatMap((group) => group.permissions).length);
 
   function updateRole(updater: (role: RoleModel) => RoleModel) {
     setRoles((current) => current.map((role) => (role.key === activeRole.key ? updater(role) : role)));
@@ -51,19 +80,32 @@ export default function AccessControl() {
   }
 
   function saveDraft() {
-    toast.success("Access control draft saved locally. Backend persistence will be connected in the Node + SQL phase.");
+    if (!activeRole) return;
+
+    saveRoleModelMutation.mutate({
+      roleKey: activeRole.key,
+      permissionKeys: activeRole.permissionKeys,
+      menuKeys: activeRole.menuKeys,
+      phaseKeys: activeRole.phaseKeys,
+    });
   }
 
-  function duplicateRole() {
-    const copy: RoleModel = {
-      ...activeRole,
-      key: `${activeRole.key}-copy` as RoleModel["key"],
-      name: `${activeRole.name} Copy`,
-      members: 0,
-    };
-    setRoles((current) => [...current, copy]);
-    setActiveRoleKey(copy.key);
-    toast.info("Role template duplicated for review.");
+  if (accessModelQuery.isLoading && roles.length === 0) {
+    return <div className="p-6 text-sm font-semibold text-slate-500">Loading access control model from database...</div>;
+  }
+
+  if (accessModelQuery.error && roles.length === 0) {
+    return (
+      <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-red-900">
+        <div className="text-lg font-extrabold">Access Control could not load</div>
+        <p className="mt-2 text-sm leading-6">{accessModelQuery.error.message}</p>
+        <button onClick={() => void accessModelQuery.refetch()} className="mt-5 rounded-2xl bg-red-700 px-5 py-2.5 text-sm font-extrabold text-white">Retry</button>
+      </div>
+    );
+  }
+
+  if (!activeRole) {
+    return <div className="p-6 text-sm font-semibold text-slate-500">No access roles found. Seed access roles first, then reload this page.</div>;
   }
 
   return (
@@ -74,11 +116,11 @@ export default function AccessControl() {
         description="A single place for roles, permissions, workflow ownership, menu visibility, and user scope. This replaces scattered controls in Settings, Users, and Workflow Control."
         actions={
           <>
-            <button onClick={duplicateRole} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm transition hover:border-cyan-200 hover:text-cyan-700">
+            <button disabled title="Role creation will be implemented with a governed database workflow in the next iteration." className="inline-flex cursor-not-allowed items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-400 opacity-60 shadow-sm">
               <Copy className="h-4 w-4" /> Duplicate role
             </button>
-            <button onClick={saveDraft} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800">
-              <Save className="h-4 w-4" /> Save model
+            <button onClick={saveDraft} disabled={saveRoleModelMutation.isPending} className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+              <Save className="h-4 w-4" /> {saveRoleModelMutation.isPending ? "Saving..." : "Save model"}
             </button>
           </>
         }
@@ -160,7 +202,7 @@ export default function AccessControl() {
           <div className="p-4 sm:p-6">
             {activeTab === "system" && (
               <div className="space-y-4">
-                {permissionGroups.map((group) => {
+                {accessPermissionGroups.map((group) => {
                   const Icon = group.icon;
                   return (
                     <div key={group.group} className="rounded-2xl border border-slate-200 bg-white shadow-sm">

@@ -617,6 +617,19 @@ export type AccessControlModel = {
   roles: RoleModel[];
 };
 
+export type SaveAccessRoleModelInput = {
+  roleKey: RoleKey;
+  permissionKeys: string[];
+  menuKeys: string[];
+  phaseKeys: PhaseKey[];
+};
+
+export type AccessControlAuditActor = {
+  openId?: string | null;
+  name?: string | null;
+  roleKey?: string | null;
+};
+
 export type WorkflowPhaseInput = {
   id: string;
   label: string;
@@ -1196,6 +1209,87 @@ export async function getAccessControlModel(): Promise<AccessControlModel> {
   }));
 
   return { permissionGroups: groups, roles };
+}
+
+export async function saveAccessRoleModel(
+  input: SaveAccessRoleModelInput,
+  actor: AccessControlAuditActor = {}
+): Promise<{ ok: true; roleKey: RoleKey }> {
+  const db = await requireDb();
+  await seedAccessControl();
+
+  const normalizedPermissionKeys = Array.from(new Set(input.permissionKeys));
+  const normalizedMenuKeys = Array.from(new Set(input.menuKeys));
+  const normalizedPhaseKeys = Array.from(new Set(input.phaseKeys));
+
+  const [roleRows, permissionRows] = await Promise.all([
+    db.select().from(accessRoles).where(eq(accessRoles.key, input.roleKey)).limit(1),
+    db.select({ key: accessPermissions.key }).from(accessPermissions),
+  ]);
+
+  const role = roleRows[0];
+  if (!role) {
+    throw new Error(`Access role was not found: ${input.roleKey}`);
+  }
+
+  const allowedPermissionKeys = new Set(permissionRows.map(permission => permission.key));
+  const unknownPermissionKeys = normalizedPermissionKeys.filter(key => !allowedPermissionKeys.has(key));
+  if (unknownPermissionKeys.length > 0) {
+    throw new Error(`Unknown permission key(s): ${unknownPermissionKeys.join(", ")}`);
+  }
+
+  const beforeModel = {
+    ...role,
+    permissionKeys: (await db
+      .select({ permissionKey: accessRolePermissions.permissionKey })
+      .from(accessRolePermissions)
+      .where(eq(accessRolePermissions.roleKey, input.roleKey)))
+      .map(item => item.permissionKey),
+  };
+
+  await db.transaction(async tx => {
+    await tx
+      .update(accessRoles)
+      .set({
+        menuKeysJson: JSON.stringify(normalizedMenuKeys),
+        phaseKeysJson: JSON.stringify(normalizedPhaseKeys),
+        updatedAt: new Date(),
+      })
+      .where(eq(accessRoles.key, input.roleKey));
+
+    await tx
+      .delete(accessRolePermissions)
+      .where(eq(accessRolePermissions.roleKey, input.roleKey));
+
+    if (normalizedPermissionKeys.length > 0) {
+      await tx.insert(accessRolePermissions).values(
+        normalizedPermissionKeys.map(permissionKey => ({
+          roleKey: input.roleKey,
+          permissionKey,
+          createdAt: new Date(),
+        }))
+      );
+    }
+
+    await tx.insert(auditTrail).values({
+      entityType: "ACCESS_CONTROL",
+      entityId: input.roleKey,
+      action: "ACCESS_ROLE_MODEL_SAVED",
+      actorOpenId: actor.openId ?? null,
+      actorName: actor.name ?? "System Admin",
+      actorRoleKey: actor.roleKey ?? "admin",
+      summary: `Access role model updated for ${input.roleKey}.`,
+      beforeJson: JSON.stringify(beforeModel),
+      afterJson: JSON.stringify({
+        roleKey: input.roleKey,
+        permissionKeys: normalizedPermissionKeys,
+        menuKeys: normalizedMenuKeys,
+        phaseKeys: normalizedPhaseKeys,
+      }),
+    });
+  });
+
+  return { ok: true, roleKey: input.roleKey };
 }
 
 export async function getAllWorkflows(): Promise<WorkflowTemplateInput[]> {

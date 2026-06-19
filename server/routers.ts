@@ -21,6 +21,7 @@ import {
 import {
   deleteWorkflow,
   getAccessControlModel,
+  saveAccessRoleModel,
   getAllWorkflows,
   getWorkflowById,
   upsertWorkflow,
@@ -147,6 +148,13 @@ const phaseKeySchema = z.enum([
   "finalTight",
   "inspectionReady",
 ]);
+
+const accessRoleModelSaveSchema = z.object({
+  roleKey: roleKeySchema,
+  permissionKeys: z.array(z.string().min(1).max(120)).default([]),
+  menuKeys: z.array(z.string().min(1).max(120)).default([]),
+  phaseKeys: z.array(phaseKeySchema).default([]),
+});
 
 const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -692,6 +700,16 @@ const accessControlRouter = router({
     requireAdmin(ctx);
     return getAccessControlModel();
   }),
+  saveRoleModel: adminProcedure
+    .input(accessRoleModelSaveSchema)
+    .mutation(async ({ input, ctx }) => {
+      requireAdmin(ctx);
+      return saveAccessRoleModel(input, {
+        openId: ctx.user?.openId ?? null,
+        name: ctx.user?.name ?? "System Admin",
+        roleKey: (ctx.user as any)?.roleKey ?? ctx.user?.role ?? "admin",
+      });
+    }),
 });
 
 const workflowRouter = router({
