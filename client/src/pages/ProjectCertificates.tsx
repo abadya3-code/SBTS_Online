@@ -3,12 +3,13 @@ import { useLocation, useRoute } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PrintStyles } from "@/components/print/PrintStyles";
 import { ProfessionalCertificatePage } from "@/components/print/ProfessionalPrintLayouts";
+import type { CertificateRecord, PrintableBlind, SystemGeneralSettings } from "@/types/operationalModels";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getCorporateIdentity } from "@/lib/corporateIdentity";
 import { buildPrintFileName, printWithMode } from "@/lib/printExport";
 
-function certificateState(blind: any, certificate?: any) {
+function certificateState(blind: PrintableBlind, certificate?: CertificateRecord) {
   const phase = String(blind?.phaseLabel ?? blind?.currentPhase ?? "").toLowerCase();
   const status = String(certificate?.status ?? "").toLowerCase();
   if (status === "issued" || status === "printed" || phase.includes("final")) return "Approved";
@@ -24,7 +25,7 @@ export default function ProjectCertificates() {
   const blindsQuery = trpc.core.blinds.useQuery(undefined, { staleTime: 20_000 });
   const certificatesQuery = trpc.core.certificates.useQuery({ projectId }, { enabled: Boolean(projectId), staleTime: 10_000 });
   const settingsQuery = trpc.core.systemSettings.useQuery(undefined, { staleTime: 30_000 });
-  const corporate = getCorporateIdentity(settingsQuery.data?.general as any);
+  const corporate = getCorporateIdentity(settingsQuery.data?.general as SystemGeneralSettings | undefined);
   const certificateSettings = settingsQuery.data?.certificates;
   const project = projectsQuery.data?.find(item => item.id === projectId);
   const blinds = (blindsQuery.data ?? []).filter(item => item.projectId === projectId);

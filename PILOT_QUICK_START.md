@@ -1,40 +1,48 @@
-# SBTS Report Closure 100% Quick Start
+# SBTS Final Closure Quick Start
 
-Apply this package over your current `SBTS_PRODUCTION_CLEAN` folder.
-
-Do not delete:
-
-- `.git`
-- `.env`
-- `node_modules`
-
-## Commands
+1. Copy package files over `C:\Users\princ\Downloads\SBTS_PRODUCTION_CLEAN`.
+2. Do not delete `.git`, `.env`, or `node_modules`.
+3. Run:
 
 ```bash
 pnpm install --no-frozen-lockfile
 pnpm audit:report-closure
+pnpm audit:final
 pnpm build
 ```
 
-Commit and deploy:
+4. Commit and push:
 
 ```bash
 git add .
-git commit -m "Sprint 17 report closure transactions matrix preferences"
+git commit -m "Sprint 17 final online E2E and type safety closure"
 git push
 ```
 
-Railway:
+5. After Railway deploy:
 
 ```bash
-railway run pnpm db:push
 railway run pnpm db:verify
-railway run pnpm seed:admin
 ```
 
-## Online validation
+6. Set E2E environment variables locally or in your terminal session:
 
-- Admin: test Access Control, Monitoring, User Profile, phase move, approval, certificate.
-- Supervisor: verify assigned project scope only.
-- Technician: verify only assigned phase and own badge signature works.
-- User Profile: save interface mode, keyboard shortcuts, and command search preferences.
+```bash
+set SBTS_E2E_BASE_URL=https://sbts-online.up.railway.app
+set SBTS_E2E_ADMIN_USERNAME=admin
+set SBTS_E2E_ADMIN_PASSWORD=YOUR_PASSWORD
+set SBTS_E2E_SUPERVISOR_USERNAME=SUPERVISOR_USER
+set SBTS_E2E_SUPERVISOR_PASSWORD=SUPERVISOR_PASSWORD
+set SBTS_E2E_TECHNICIAN_USERNAME=TECHNICIAN_USER
+set SBTS_E2E_TECHNICIAN_PASSWORD=TECHNICIAN_PASSWORD
+```
+
+7. Run online E2E and evidence generation:
+
+```bash
+pnpm e2e:install
+pnpm e2e:online
+pnpm e2e:evidence
+```
+
+8. Attach the generated file from `docs/evidence/ONLINE_TEST_RUN_*.md` to the final pilot report.

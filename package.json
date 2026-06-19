@@ -45,7 +45,13 @@
     "qa:17.11": "pnpm audit:17.11 && pnpm check && pnpm build",
     "qa:17.10-17.11": "pnpm audit:17.10 && pnpm audit:17.11 && pnpm check && pnpm build",
     "audit:report-closure": "node scripts/sprint17-report-closure-static.mjs",
-    "qa:report-closure": "pnpm audit:17.8.2 && pnpm audit:17.8.3 && pnpm audit:17.9 && pnpm audit:17.10 && pnpm audit:17.11 && pnpm audit:report-closure && pnpm check && pnpm build"
+    "qa:report-closure": "pnpm audit:17.8.2 && pnpm audit:17.8.3 && pnpm audit:17.9 && pnpm audit:17.10 && pnpm audit:17.11 && pnpm audit:report-closure && pnpm check && pnpm build",
+    "e2e:install": "playwright install chromium",
+    "e2e:online": "playwright test",
+    "e2e:report": "playwright show-report",
+    "e2e:evidence": "node scripts/generate-online-test-evidence.mjs",
+    "audit:final": "node scripts/sprint17-final-online-e2e-static.mjs",
+    "qa:final": "pnpm audit:report-closure && pnpm audit:final && pnpm check && pnpm build && pnpm e2e:online && pnpm e2e:evidence"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -139,7 +145,8 @@
     "tw-animate-css": "^1.4.0",
     "typescript": "5.9.3",
     "vite": "^7.1.7",
-    "vitest": "^2.1.4"
+    "vitest": "^2.1.4",
+    "@playwright/test": "^1.49.1"
   },
   "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af",
   "pnpm": {

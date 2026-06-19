@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { saveAuthSession } from "@/lib/auth";
 import type { SecurityProfile, SecurityRoleKey } from "@/lib/security";
 import { getCorporateIdentity, initialsFromCompanyName } from "@/lib/corporateIdentity";
+import type { SystemGeneralSettings } from "@/types/operationalModels";
 
 const roleLabels: Record<SecurityRoleKey, string> = {
   admin: "System Admin",
@@ -41,7 +42,7 @@ export default function Login() {
   const employeesQuery = trpc.core.employees.useQuery();
   const settingsQuery = trpc.core.systemSettings.useQuery(undefined, { staleTime: 30_000 });
   const general = settingsQuery.data?.general;
-  const corporate = getCorporateIdentity(general as any);
+  const corporate = getCorporateIdentity(general as SystemGeneralSettings | undefined);
   const systemName = general?.systemName ?? "Smart Blind Tag System";
   const facilityName = general?.facilityName ?? "Shedgum Gas Plant";
 

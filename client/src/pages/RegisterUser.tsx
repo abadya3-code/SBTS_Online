@@ -14,6 +14,8 @@ const roles = [
   ["metalForeman", "Metal Foreman"],
 ] as const;
 
+type RegistrationRoleKey = (typeof roles)[number][0];
+
 export default function RegisterUser() {
   const [, setLocation] = useLocation();
   const [form, setForm] = useState({
@@ -23,7 +25,7 @@ export default function RegisterUser() {
     username: "",
     password: "",
     confirmPassword: "",
-    roleKey: "technician",
+    roleKey: "technician" as RegistrationRoleKey,
   });
   const createMutation = trpc.core.registerEmployeeCredential.useMutation({
     onSuccess: () => {
@@ -41,7 +43,7 @@ export default function RegisterUser() {
     createMutation.mutate({
       badge: form.badge || form.username,
       fullName: form.fullName,
-      roleKey: form.roleKey as any,
+      roleKey: form.roleKey,
       specialty: "Pending profile update",
       department: "Pending assignment",
       shift: "Unassigned",

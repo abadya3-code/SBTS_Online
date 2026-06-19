@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PrintStyles } from "@/components/print/PrintStyles";
 import { ProfessionalCertificatePage } from "@/components/print/ProfessionalPrintLayouts";
+import type { ApprovalRecord, CertificateSettings, SystemGeneralSettings } from "@/types/operationalModels";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getCorporateIdentity } from "@/lib/corporateIdentity";
@@ -19,16 +20,16 @@ export default function CertificateBuilder() {
   const certificatesQuery = trpc.core.certificates.useQuery({ blindId: blind?.id ?? "" }, { enabled: Boolean(blind?.id), staleTime: 10_000 });
   const certificateLockQuery = trpc.core.certificateLock.useQuery({ blindId: blind?.id ?? "" }, { enabled: Boolean(blind?.id), staleTime: 10_000 });
   const settingsQuery = trpc.core.systemSettings.useQuery(undefined, { staleTime: 20_000 });
-  const certSettings = settingsQuery.data?.certificates;
-  const generalSettings = settingsQuery.data?.general;
-  const corporate = getCorporateIdentity(generalSettings as any);
-  const certificateLogo = corporate.showOnCertificates ? (corporate.companyLogo || (certSettings as any)?.certificateLogoUrl || "") : ((certSettings as any)?.certificateLogoUrl || "");
+  const certSettings = settingsQuery.data?.certificates as CertificateSettings | undefined;
+  const generalSettings = settingsQuery.data?.general as SystemGeneralSettings | undefined;
+  const corporate = getCorporateIdentity(generalSettings);
+  const certificateLogo = corporate.showOnCertificates ? (corporate.companyLogo || certSettings?.certificateLogoUrl || "") : (certSettings?.certificateLogoUrl || "");
   const torqueRecords = torqueQuery.data ?? [];
   const approvals = (approvalsQuery.data ?? []).filter(item => item.blindId === blind?.id);
   const lockStatus = certificateLockQuery.data;
   const latestCertificate = certificatesQuery.data?.[0];
   const certNo = latestCertificate?.certificateNo ?? (blind ? `SBTS-CERT-${blind.tagNo.replace(/[^A-Z0-9]/gi, "")}-R01` : "SBTS-CERT");
-  const requiredApprovers = lockStatus?.requiredApprovers ?? [];
+  const requiredApprovers: Array<ApprovalRecord | string> = lockStatus?.requiredApprovers ?? [];
 
   const issueCertificateMutation = trpc.core.issueCertificate.useMutation({
     onSuccess: async cert => {
@@ -91,10 +92,10 @@ export default function CertificateBuilder() {
         certificate={latestCertificate}
         corporate={corporate}
         certificateLogo={certificateLogo}
-        torqueRecords={torqueRecords as any[]}
-        workflowLogs={(blind.logs ?? []) as any[]}
-        approvals={approvals as any[]}
-        requiredApprovers={requiredApprovers as any[]}
+        torqueRecords={torqueRecords}
+        workflowLogs={blind.logs ?? []}
+        approvals={approvals}
+        requiredApprovers={requiredApprovers}
         title={certSettings?.certificateTitle ?? "Smart Blind Tag System Certificate"}
         generatedAt={latestCertificate?.issuedAt ?? new Date()}
       />

@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { trpc } from "@/lib/trpc";
 import { type SecurityProfile, type SecurityRoleKey } from "@/lib/security";
 import { saveAuthSession } from "@/lib/auth";
+import type { UserManagementRow } from "@/types/operationalModels";
 
 const roleOptions: { key: SecurityRoleKey; label: string }[] = [
   { key: "admin", label: "System Admin" },
@@ -45,15 +46,23 @@ const emptyForm: FormState = {
   isCertified: true,
 };
 
-function makeProfile(user: any): SecurityProfile {
+function roleFromUser(roleKey: string): SecurityRoleKey {
+  return roleOptions.some(role => role.key === roleKey) ? (roleKey as SecurityRoleKey) : "technician";
+}
+
+function statusFromUser(status: string): Status {
+  return statusOptions.includes(status as Status) ? (status as Status) : "Pending";
+}
+
+function makeProfile(user: UserManagementRow): SecurityProfile {
   return {
     id: user.id,
     badge: user.badge,
     fullName: user.fullName,
-    roleKey: user.roleKey,
+    roleKey: roleFromUser(user.roleKey),
     roleLabel: user.roleLabel,
     initials: user.initials,
-    status: user.status,
+    status: statusFromUser(user.status),
   };
 }
 
@@ -65,7 +74,7 @@ export default function UserManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [credentialUser, setCredentialUser] = useState<any | null>(null);
+  const [credentialUser, setCredentialUser] = useState<UserManagementRow | null>(null);
   const [credentialForm, setCredentialForm] = useState({ username: "", password: "", recoveryEmail: "" });
 
   const createMutation = trpc.core.createEmployee.useMutation({
@@ -107,7 +116,7 @@ export default function UserManagement() {
     onError: error => toast.error(error.message),
   });
 
-  const users = usersQuery.data ?? [];
+  const users: UserManagementRow[] = usersQuery.data ?? [];
 
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -132,18 +141,18 @@ export default function UserManagement() {
     setFormOpen(true);
   }
 
-  function openEdit(user: any) {
+  function openEdit(user: UserManagementRow) {
     setForm({
       id: user.id,
       badge: user.badge,
       fullName: user.fullName,
-      roleKey: user.roleKey,
+      roleKey: roleFromUser(user.roleKey),
       specialty: user.specialty,
       department: user.department,
       shift: user.shift,
-      status: user.status,
+      status: statusFromUser(user.status),
       photoUrl: user.photoUrl ?? "",
-      isCertified: user.isCertified,
+      isCertified: Boolean(user.isCertified),
     });
     setFormOpen(true);
   }
@@ -164,12 +173,12 @@ export default function UserManagement() {
     else createMutation.mutate(payload);
   }
 
-  function switchSession(user: any) {
+  function switchSession(user: UserManagementRow) {
     saveAuthSession(makeProfile(user), "demo-badge");
     toast.success(`Active session switched to ${user.fullName}. Navigation lock updated.`);
   }
 
-  function openCredential(user: any) {
+  function openCredential(user: UserManagementRow) {
     setCredentialUser(user);
     setCredentialForm({ username: String(user.badge ?? "").toLowerCase(), password: "", recoveryEmail: "" });
   }
@@ -245,7 +254,7 @@ export default function UserManagement() {
               </div>
               <div className="flex flex-wrap justify-start gap-2 xl:justify-end">
                 <button onClick={() => switchSession(user)} className="inline-flex items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-700 hover:bg-cyan-100"><ShieldCheck className="h-4 w-4" /> Use session</button>
-                {user.status === "Pending" && <button onClick={() => updateMutation.mutate({ ...user, status: "Active" as any })} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /> Approve</button>}
+                {user.status === "Pending" && <button onClick={() => updateMutation.mutate({ ...user, status: "Active" })} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"><CheckCircle2 className="h-4 w-4" /> Approve</button>}
                 <button onClick={() => openCredential(user)} className="inline-flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 hover:bg-emerald-100"><KeyRound className="h-4 w-4" /> Credential</button>
                 <button onClick={() => openEdit(user)} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 hover:border-cyan-200 hover:text-cyan-700"><Edit3 className="h-4 w-4" /> Edit</button>
                 <button onClick={() => deleteMutation.mutate({ id: user.id })} className="inline-flex items-center gap-2 rounded-2xl border border-rose-200 bg-white px-3 py-2 text-xs font-black text-rose-700 hover:bg-rose-50"><Trash2 className="h-4 w-4" /> Delete</button>

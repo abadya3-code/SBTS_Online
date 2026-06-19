@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode } from "react";
 import { Bell, Check, Database, FileCheck2, ImageUp, ListChecks, LockKeyhole, Printer, RotateCcw, Save, Settings2, ShieldCheck, Tags } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { QRCodeBlock } from "@/components/common/QRCodeBlock";
 import { getCorporateIdentity, initialsFromCompanyName } from "@/lib/corporateIdentity";
 import { dispatchThemeChanged, THEME_OPTIONS, themeClassFor, themeDisplayName } from "@/lib/themeEngine";
+import type { ThemeTemplateName } from "@/types/operationalModels";
 
 type SettingsForm = {
   general: {
@@ -239,14 +240,15 @@ export default function SystemSettingsCenter() {
 
   useEffect(() => {
     if (!settingsQuery.data) return;
+    const serverSettings = settingsQuery.data as Partial<SettingsForm>;
     setForm({
-      general: { ...defaultSettings.general, ...settingsQuery.data.general },
-      tags: { ...defaultSettings.tags, ...settingsQuery.data.tags },
-      certificates: { ...defaultSettings.certificates, ...settingsQuery.data.certificates },
-      approvals: { ...defaultSettings.approvals, ...(settingsQuery.data as any).approvals },
-      masterData: { ...defaultSettings.masterData, ...(settingsQuery.data as any).masterData },
-      notifications: { ...defaultSettings.notifications, ...settingsQuery.data.notifications },
-      security: { ...defaultSettings.security, ...settingsQuery.data.security },
+      general: { ...defaultSettings.general, ...serverSettings.general },
+      tags: { ...defaultSettings.tags, ...serverSettings.tags },
+      certificates: { ...defaultSettings.certificates, ...serverSettings.certificates },
+      approvals: { ...defaultSettings.approvals, ...serverSettings.approvals },
+      masterData: { ...defaultSettings.masterData, ...serverSettings.masterData },
+      notifications: { ...defaultSettings.notifications, ...serverSettings.notifications },
+      security: { ...defaultSettings.security, ...serverSettings.security },
     });
   }, [settingsQuery.data]);
 
@@ -453,7 +455,7 @@ export default function SystemSettingsCenter() {
               <Field label="Application Version"><input value={form.general.appVersionNumber ?? "V1.0"} onChange={e => setForm({ ...form, general: { ...form.general, appVersionNumber: e.target.value } })} placeholder="V1.0" className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100" /></Field>
               <Field label="Release Name"><input value={form.general.releaseName ?? "Pilot Live"} onChange={e => setForm({ ...form, general: { ...form.general, releaseName: e.target.value } })} placeholder="Pilot Live" className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100" /></Field>
               <Field label="Release Year"><input value={form.general.releaseYear ?? "2026"} onChange={e => setForm({ ...form, general: { ...form.general, releaseYear: e.target.value } })} placeholder="2026" className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100" /></Field>
-              <Field label="Theme Template"><select value={form.general.themeTemplate ?? "Template 1"} onChange={e => setForm({ ...form, general: { ...form.general, themeTemplate: e.target.value as any } })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">{THEME_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
+              <Field label="Theme Template"><select value={form.general.themeTemplate ?? "Template 1"} onChange={e => setForm({ ...form, general: { ...form.general, themeTemplate: e.target.value as ThemeTemplateName } })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100">{THEME_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
               <Field label="System Accent Color"><input type="color" value={form.general.customAccentColor ?? "#0891b2"} onChange={e => setForm({ ...form, general: { ...form.general, customAccentColor: e.target.value } })} className="h-12 w-full rounded-2xl border border-slate-200 bg-white p-1" /></Field>
               <Field label="Header Description"><input value={form.general.appDescription ?? ""} onChange={e => setForm({ ...form, general: { ...form.general, appDescription: e.target.value } })} className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100" /></Field>
               <Field label="Dashboard Hero Title"><textarea value={form.general.dashboardHeroTitle ?? ""} onChange={e => setForm({ ...form, general: { ...form.general, dashboardHeroTitle: e.target.value } })} className="min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100" /></Field>
@@ -477,7 +479,7 @@ export default function SystemSettingsCenter() {
                 <div className="rounded-2xl bg-slate-950 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-white">{form.general.systemName}</div>
               </div>
             </div>
-            <div className={`rounded-[2rem] border border-slate-200 p-5 ${themeClassFor(form.general.themeTemplate)}`} style={{ "--sbts-accent": form.general.customAccentColor ?? "#0891b2" } as any}>
+            <div className={`rounded-[2rem] border border-slate-200 p-5 ${themeClassFor(form.general.themeTemplate)}`} style={{ "--sbts-accent": form.general.customAccentColor ?? "#0891b2" } as CSSProperties}>
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-black text-slate-950">Theme Live Preview</div>

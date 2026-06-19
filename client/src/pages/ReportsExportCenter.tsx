@@ -47,7 +47,7 @@ export default function ReportsExportCenter() {
   const projectsQuery = trpc.core.projects.useQuery(undefined, { staleTime: 30_000 });
   const reportQuery = trpc.core.reportCenter.useQuery({ projectId: projectId || null }, { staleTime: 20_000 });
   const settingsQuery = trpc.core.systemSettings.useQuery(undefined, { staleTime: 30_000 });
-  const corporate = getCorporateIdentity(settingsQuery.data?.general as any);
+  const corporate = getCorporateIdentity(settingsQuery.data?.general as SystemGeneralSettings | undefined);
   const recordExport = trpc.core.recordReportExport.useMutation();
 
   const report = reportQuery.data;

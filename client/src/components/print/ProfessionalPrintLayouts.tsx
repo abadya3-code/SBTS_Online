@@ -1,8 +1,9 @@
 import { BadgeCheck, CalendarDays, ClipboardCheck, FileText, ShieldCheck, Wrench } from "lucide-react";
 import { QRCodeBlock, buildBlindQrValue } from "@/components/common/QRCodeBlock";
 import { initialsFromCompanyName } from "@/lib/corporateIdentity";
+import type { ApprovalRecord, CertificateRecord, PrintableBlind, PrintableProject, TorqueRecord, WorkflowLogRecord } from "@/types/operationalModels";
 
-type CorporateIdentity = {
+export type CorporateIdentity = {
   companyName?: string;
   companyShortName?: string;
   companySubtitle?: string;
@@ -11,7 +12,7 @@ type CorporateIdentity = {
   showOnTags?: boolean;
 };
 
-type TagSettings = {
+export type TagSettings = {
   tagWidthCm: number;
   tagHeightCm: number;
   tagColor: string;
@@ -59,7 +60,7 @@ export function printMonthYear(value?: string | Date | null) {
   return `${String(date.getMonth() + 1).padStart(2, "0")}/${date.getFullYear()}`;
 }
 
-function statusLabel(blind: any, certificate?: any) {
+function statusLabel(blind: PrintableBlind, certificate?: CertificateRecord) {
   const phase = String(blind?.phaseLabel ?? blind?.currentPhase ?? "").toLowerCase();
   const certStatus = String(certificate?.status ?? "").toLowerCase();
   if (certStatus === "issued" || certStatus === "printed" || certStatus === "locked") return "APPROVED";
@@ -109,14 +110,14 @@ export function ProfessionalCertificatePage({
   certificateLogo = "",
   generatedAt,
 }: {
-  blind: any;
-  project?: any;
-  certificate?: any;
+  blind: PrintableBlind;
+  project?: PrintableProject;
+  certificate?: CertificateRecord;
   corporate: CorporateIdentity;
-  torqueRecords?: any[];
-  workflowLogs?: any[];
-  approvals?: any[];
-  requiredApprovers?: any[];
+  torqueRecords?: TorqueRecord[];
+  workflowLogs?: WorkflowLogRecord[];
+  approvals?: ApprovalRecord[];
+  requiredApprovers?: Array<ApprovalRecord | string>;
   title?: string;
   certificateLogo?: string;
   generatedAt?: string | Date | null;
@@ -165,7 +166,7 @@ export function ProfessionalCertificatePage({
         <div className="rounded-2xl border border-slate-200 p-3">
           <div className="flex items-center gap-2 text-xs font-black text-slate-950"><ClipboardCheck className="h-4 w-4 text-cyan-700" /> Workflow Summary</div>
           <div className="mt-2 space-y-1.5">
-            {(logs ?? []).slice(0, 5).map((log: any, index: number) => (
+            {(logs ?? []).slice(0, 5).map((log: WorkflowLogRecord, index: number) => (
               <div key={String(log?.id ?? index)} className="rounded-lg bg-slate-50 px-2 py-1.5">
                 <div className="truncate text-[10px] font-black text-slate-950">{valueOrDash(log?.fromPhaseLabel ?? log?.fromPhaseKey ?? log?.action)} → {valueOrDash(log?.toPhaseLabel ?? log?.toPhaseKey ?? blind?.phaseLabel)}</div>
                 <div className="mt-0.5 truncate text-[9px] font-bold text-slate-500">{valueOrDash(log?.workerName ?? log?.performedByName ?? log?.actorName)} · {formatPrintDateTime(log?.createdAt)}</div>
@@ -178,7 +179,7 @@ export function ProfessionalCertificatePage({
         <div className="rounded-2xl border border-slate-200 p-3">
           <div className="flex items-center gap-2 text-xs font-black text-slate-950"><Wrench className="h-4 w-4 text-amber-600" /> Torque / Technical Evidence</div>
           <div className="mt-2 space-y-1.5">
-            {(torqueRecords ?? []).slice(0, 4).map((record: any, index: number) => (
+            {(torqueRecords ?? []).slice(0, 4).map((record: TorqueRecord, index: number) => (
               <div key={String(record?.id ?? index)} className="rounded-lg bg-amber-50 px-2 py-1.5">
                 <div className="truncate text-[10px] font-black text-slate-950">{valueOrDash(record?.machineType ?? record?.toolType)} · {valueOrDash(record?.psiValue ?? record?.psi)} PSI</div>
                 <div className="mt-0.5 truncate text-[9px] font-bold text-slate-500">{valueOrDash(record?.technicianName)} · {formatPrintDateTime(record?.createdAt)}</div>
@@ -191,13 +192,14 @@ export function ProfessionalCertificatePage({
         <div className="rounded-2xl border border-slate-200 p-3">
           <div className="flex items-center gap-2 text-xs font-black text-slate-950"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approvals</div>
           <div className="mt-2 space-y-1.5">
-            {(finalApprovals ?? []).slice(0, 5).map((approval: any, index: number) => {
-              const label = approval?.label ?? approval?.phaseLabel ?? approval?.requiredRoleLabel ?? approval;
-              const status = approval?.status ?? (approval?.approvedByName ? "Approved" : approvalState === "APPROVED" ? "Approved" : "Pending");
+            {(finalApprovals ?? []).slice(0, 5).map((approval: ApprovalRecord | string, index: number) => {
+              const approvalRecord = typeof approval === "string" ? undefined : approval;
+              const label = approvalRecord?.label ?? approvalRecord?.phaseLabel ?? approvalRecord?.requiredRoleLabel ?? approval;
+              const status = approvalRecord?.status ?? (approvalRecord?.approvedByName ? "Approved" : approvalState === "APPROVED" ? "Approved" : "Pending");
               return (
-                <div key={String(approval?.id ?? label ?? index)} className={`rounded-lg px-2 py-1.5 ${String(status).toLowerCase().includes("approved") ? "bg-emerald-50" : "bg-amber-50"}`}>
+                <div key={String(approvalRecord?.id ?? label ?? index)} className={`rounded-lg px-2 py-1.5 ${String(status).toLowerCase().includes("approved") ? "bg-emerald-50" : "bg-amber-50"}`}>
                   <div className="truncate text-[10px] font-black text-slate-950">{valueOrDash(label)} · {valueOrDash(status)}</div>
-                  <div className="mt-0.5 truncate text-[9px] font-bold text-slate-500">By: {valueOrDash(approval?.approvedByName ?? approval?.approvedByOpenId ?? approval?.by)}</div>
+                  <div className="mt-0.5 truncate text-[9px] font-bold text-slate-500">By: {valueOrDash(approvalRecord?.approvedByName ?? approvalRecord?.approvedByOpenId ?? approvalRecord?.by)}</div>
                 </div>
               );
             })}
@@ -226,7 +228,7 @@ export function ProfessionalCertificatePage({
   );
 }
 
-export function ProfessionalTagCard({ blind, project, settings, corporate }: { blind: any; project?: any; settings: TagSettings; corporate: CorporateIdentity }) {
+export function ProfessionalTagCard({ blind, project, settings, corporate }: { blind: PrintableBlind; project?: PrintableProject; settings: TagSettings; corporate: CorporateIdentity }) {
   const tagWidth = settings.tagWidthCm || 11;
   const tagHeight = settings.tagHeightCm || 7;
   const qrSize = Math.min(settings.qrSizePx || 175, 178);

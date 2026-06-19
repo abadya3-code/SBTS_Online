@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, Clock3, FileWarning, MapPinned, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { blindRows, phases, recentEvents } from "@/lib/mockData";
 import { trpc } from "@/lib/trpc";
+import type { DashboardBlind, KpiCardDefinition, SystemGeneralSettings } from "@/types/operationalModels";
 
 const heroUrl = "https://d2xsxph8kpxj0f.cloudfront.net/95256836/T9nk6A5dkk7H7GaCBwTuhX/sbts-command-center-hero-UhGNvmibStQht4VPE3rmFJ.webp";
 const fieldUrl = "https://d2xsxph8kpxj0f.cloudfront.net/95256836/T9nk6A5dkk7H7GaCBwTuhX/sbts-field-qr-blind-tag-ib8jkhZ5Q9DrAYW7LZ3mVY.webp";
@@ -20,7 +21,7 @@ export default function Dashboard() {
   const totalBlinds = summaryQuery.data?.totalBlinds ?? fallbackTotalBlinds;
   const completion = summaryQuery.data?.completionPercent ?? Math.round((fallbackCompleted / fallbackTotalBlinds) * 100);
   const dashboardPhases = summaryQuery.data?.phaseCounts ?? phases;
-  const focusBlinds = (blindsQuery.data ?? blindRows.map((blind) => ({
+  const fallbackBlinds: DashboardBlind[] = blindRows.map((blind) => ({
     id: blind.tag,
     tagNo: blind.tag,
     projectName: blind.project,
@@ -29,15 +30,17 @@ export default function Dashboard() {
     ownerLabel: blind.owner,
     priority: blind.priority,
     blindType: "Blind",
-  }))).slice(0, 5);
-  const slipBlinds = (blindsQuery.data ?? []).filter(blind => String((blind as any).blindType ?? "").toLowerCase().includes("slip"));
+  }));
+  const liveBlinds: DashboardBlind[] = blindsQuery.data ?? [];
+  const focusBlinds = (liveBlinds.length ? liveBlinds : fallbackBlinds).slice(0, 5);
+  const slipBlinds = liveBlinds.filter(blind => String(blind.blindType ?? "").toLowerCase().includes("slip"));
   const slipCompleted = slipBlinds.filter(blind => blind.status === "Completed" || blind.currentPhaseKey === "inspectionReady").length;
   const slipInProgress = Math.max(0, slipBlinds.length - slipCompleted);
-  const general = settingsQuery.data?.general;
+  const general = settingsQuery.data?.general as SystemGeneralSettings | undefined;
   const systemName = general?.systemName ?? "Smart Blind Tag System";
   const facilityName = general?.facilityName ?? "Shedgum Gas Plant";
-  const heroTitle = (general as any)?.dashboardHeroTitle ?? "Digital blind isolation control built for field execution and management visibility.";
-  const heroDescription = (general as any)?.dashboardHeroDescription ?? "SBTS connects projects, blinds, QR tags, phase updates, approvals, certificates, notifications, and audit history in one maintainable React command center.";
+  const heroTitle = general?.dashboardHeroTitle ?? "Digital blind isolation control built for field execution and management visibility.";
+  const heroDescription = general?.dashboardHeroDescription ?? "SBTS connects projects, blinds, QR tags, phase updates, approvals, certificates, notifications, and audit history in one maintainable React command center.";
 
   return (
     <div className="space-y-6">
@@ -61,12 +64,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              { label: "Areas", value: summaryQuery.data?.totalAreas ?? 3, icon: MapPinned as any, tone: "text-sky-200" },
+            {([
+              { label: "Areas", value: summaryQuery.data?.totalAreas ?? 3, icon: MapPinned, tone: "text-sky-200" },
               { label: "Tracked blinds", value: totalBlinds, icon: FileWarning, tone: "text-cyan-200" },
               { label: "Completion", value: `${completion}%`, icon: TrendingUp, tone: "text-emerald-300" },
               { label: "Active projects", value: summaryQuery.data?.totalProjects ?? 3, icon: Users, tone: "text-amber-200" },
-            ].map((item) => {
+            ] satisfies KpiCardDefinition[]).map((item) => {
               const Icon = item.icon;
               return (
                 <div key={item.label} className="sbts-dark-card p-4">

@@ -129,7 +129,7 @@ export default function Areas() {
 
       <section className="sbts-card overflow-hidden">
         <div className="flex flex-col gap-3 border-b border-slate-100 p-5 md:flex-row md:items-center md:justify-between">
-          <div><h2 className="text-lg font-extrabold text-slate-950">Area Register</h2><p className="text-sm font-semibold text-slate-500">Click any area card to open the projects filtered by that area.</p></div>
+          <div><h2 className="text-lg font-extrabold text-slate-950">Area Register</h2><p className="text-sm font-semibold text-slate-500">Click an area card to open the projects filtered by that area.</p></div>
           <label className="flex min-w-[260px] items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-500"><Search className="h-4 w-4" /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search area..." className="w-full bg-transparent outline-none" /></label>
         </div>
         <div className="grid gap-4 p-5 lg:grid-cols-3">

@@ -2,13 +2,14 @@ import { ArrowLeft, Printer } from "lucide-react";
 import { useLocation } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
 import { PrintStyles } from "@/components/print/PrintStyles";
-import { ProfessionalTagCard } from "@/components/print/ProfessionalPrintLayouts";
+import { ProfessionalTagCard, type CorporateIdentity, type TagSettings } from "@/components/print/ProfessionalPrintLayouts";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { getCorporateIdentity } from "@/lib/corporateIdentity";
 import { buildPrintFileName, printWithMode } from "@/lib/printExport";
+import type { SystemGeneralSettings, SystemTagSettings } from "@/types/operationalModels";
 
-function buildTagSettings(systemTags: any, general: any, corporate: any) {
+function buildTagSettings(systemTags: SystemTagSettings | null | undefined, general: SystemGeneralSettings | null | undefined, corporate: CorporateIdentity): TagSettings {
   return {
     templateName: "Global System Tag Template",
     tagWidthCm: systemTags?.defaultTagWidthCm ?? 11,
@@ -34,8 +35,8 @@ export default function SingleTagPrint() {
   const detailQuery = trpc.core.blindDetail.useQuery({ id }, { enabled: Boolean(id), staleTime: 10_000 });
   const blind = detailQuery.data;
   const settingsQuery = trpc.core.systemSettings.useQuery(undefined, { staleTime: 20_000 });
-  const general = settingsQuery.data?.general;
-  const corporate = getCorporateIdentity(general as any);
+  const general = settingsQuery.data?.general as SystemGeneralSettings | undefined;
+  const corporate = getCorporateIdentity(general);
   const settings = buildTagSettings(settingsQuery.data?.tags, general, corporate);
   const recordTagPrint = trpc.core.recordTagPrint.useMutation({ onError: error => toast.error(error.message) });
 

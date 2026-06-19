@@ -21,6 +21,7 @@ import {
 import { useLocation, useRoute } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
 import { trpc } from "@/lib/trpc";
+import type { MasterDataSettings } from "@/types/operationalModels";
 import { toast } from "sonner";
 
 const blindTypes = [
@@ -302,7 +303,8 @@ export default function ProjectDetails() {
   })), [projectBlinds]);
 
   const blindTypeOptions = useMemo(() => {
-    const fromSettings = ((settingsQuery.data as any)?.masterData?.blindTypes as string[] | undefined)?.filter(Boolean);
+    const masterData = settingsQuery.data?.masterData as MasterDataSettings | undefined;
+    const fromSettings = masterData?.blindTypes?.filter(Boolean);
     return fromSettings?.length ? fromSettings : [...blindTypes];
   }, [settingsQuery.data]);
 
@@ -572,7 +574,7 @@ export default function ProjectDetails() {
         <div className="grid gap-3 md:grid-cols-4">
           {[
             ["Area", `${project.areaCode} · ${project.areaName}`],
-            ["Maintenance Reason", (project as any).maintenanceReason ?? "Project maintenance scope / reason not defined yet."],
+            ["Maintenance Reason", project.maintenanceReason ?? "Project maintenance scope / reason not defined yet."],
             ["Start", project.startDate ?? "TBD"],
             ["Target", project.targetDate ?? "TBD"],
           ].map(([label, value]) => (
@@ -1050,7 +1052,7 @@ export default function ProjectDetails() {
             </div>
             <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-xs font-bold leading-5 text-amber-900">
               Professional rule: phase update is not a free action. The user
-              must enter a badge/signature ID belonging to one of the selected employee cards for the target phase. Assignments are saved to backend tables and validated by the phase gate API before any phase update.
+              must enter a badge/signature ID belonging to one of the selected employee cards for the target phase. Assignments are saved to backend tables and validated by the phase gate API before a phase update.
             </div>
             <div className="mt-6 flex justify-end gap-3">
               <button

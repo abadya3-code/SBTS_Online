@@ -1,18 +1,29 @@
-# SBTS Sprint 17 Report Closure Package
+# SBTS Sprint 17 Final Closure
 
-This package completes the remaining comprehensive report closure items:
+This package closes the final comprehensive-report items:
 
-- Sensitive-operation transactions
-- Admin / Supervisor / Technician test matrix
-- Database-backed user preferences
+- Documented online testing evidence
+- Playwright E2E automation
+- Admin / Supervisor / Technician online test matrix
+- Legacy TypeScript `any` cleanup from active source
+- Print and certificate regression protection
 
-Run:
+## Required local checks
 
 ```bash
+pnpm install --no-frozen-lockfile
 pnpm audit:report-closure
+pnpm audit:final
 pnpm build
 ```
 
-Release notes:
+## Required online checks
 
-- `docs/releases/SBTS_SPRINT17_REPORT_CLOSURE_100.md`
+```bash
+railway run pnpm db:verify
+pnpm e2e:install
+pnpm e2e:online
+pnpm e2e:evidence
+```
+
+See `docs/releases/SBTS_SPRINT17_FINAL_ONLINE_E2E_TYPESAFETY.md` and `docs/evidence/ONLINE_TEST_EVIDENCE_TEMPLATE.md`.

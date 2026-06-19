@@ -79,7 +79,7 @@ export default function Projects() {
       projectNo: project.projectNo,
       name: project.name,
       areaId: project.areaId,
-      maintenanceReason: (project as any).maintenanceReason ?? "",
+      maintenanceReason: project.maintenanceReason ?? "",
       startDate: project.startDate ?? "",
       targetDate: project.targetDate ?? "",
     });

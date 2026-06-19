@@ -11,6 +11,7 @@ import { getCorporateIdentity, initialsFromCompanyName } from "@/lib/corporateId
 import { KeyboardShortcuts } from "@/components/navigation/KeyboardShortcuts";
 import { OperatorBreadcrumbs } from "@/components/navigation/OperatorBreadcrumbs";
 import { ThemeModeToggle } from "@/components/preferences/ThemeModeToggle";
+import type { SystemGeneralSettings } from "@/types/operationalModels";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -75,22 +76,22 @@ export function AppShell({ children }: AppShellProps) {
       window.removeEventListener("sbts-system-settings-changed", refetchSettings);
     };
   }, [settingsQuery.refetch]);
-  const general = settingsQuery.data?.general;
+  const general = settingsQuery.data?.general as SystemGeneralSettings | undefined;
   const systemName = general?.systemName ?? "Smart Blind Tag System";
   const facilityName = general?.facilityName ?? "Shedgum Gas Plant";
   const departmentName = general?.departmentName ?? "Maintenance";
   const logoText = general?.logoText ?? "SBTS Professional";
-  const logoUrl = (general as any)?.logoUrl ?? "";
-  const appVersion = (general as any)?.appVersionNumber ?? "V1.0";
-  const releaseName = (general as any)?.releaseName ?? "Pilot Live";
-  const releaseYear = (general as any)?.releaseYear ?? "2026";
+  const logoUrl = general?.logoUrl ?? "";
+  const appVersion = general?.appVersionNumber ?? "V1.0";
+  const releaseName = general?.releaseName ?? "Pilot Live";
+  const releaseYear = general?.releaseYear ?? "2026";
   const sessionModeLabel = session.loginMethod === "production-bound" ? "Live database" : "Demo session";
-  const corporate = getCorporateIdentity(general as any);
+  const corporate = getCorporateIdentity(general);
   const identityLogo = corporate.companyLogo || logoUrl;
   const identityInitials = initialsFromCompanyName(corporate.companyShortName || systemName);
   const personalThemeEnabled = userPrefs.themePreferenceMode === "personal";
   const themeTemplate = personalThemeEnabled ? (userPrefs.themeTemplate ?? "Template 1") : (general?.themeTemplate ?? "Template 1");
-  const customAccent = personalThemeEnabled ? (userPrefs.customAccentColor ?? "#0891b2") : ((general as any)?.customAccentColor ?? "#0891b2");
+  const customAccent = personalThemeEnabled ? (userPrefs.customAccentColor ?? "#0891b2") : (general?.customAccentColor ?? "#0891b2");
   const avatar = userPrefs.avatarDataUrl ?? "";
   const themeClass = themeClassFor(themeTemplate);
   const today = new Date().toLocaleDateString("en-GB");

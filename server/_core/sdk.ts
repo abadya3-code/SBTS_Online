@@ -14,6 +14,12 @@ import type {
   GetUserInfoWithJwtRequest,
   GetUserInfoWithJwtResponse,
 } from "./types/manusTypes";
+type OAuthUserInfoRecord = GetUserInfoResponse & {
+  platforms?: unknown;
+  platform?: string | null;
+  loginMethod?: string | null;
+};
+
 // Utility function
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
@@ -134,12 +140,13 @@ class SDKServer {
     const data = await this.oauthService.getUserInfoByToken({
       accessToken,
     } as ExchangeTokenResponse);
+    const userInfo = data as OAuthUserInfoRecord;
     const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
+      userInfo.platforms,
+      userInfo.platform ?? data.platform ?? null
     );
     return {
-      ...(data as any),
+      ...data,
       platform: loginMethod,
       loginMethod,
     } as GetUserInfoResponse;
@@ -246,11 +253,11 @@ class SDKServer {
     );
 
     const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null
+      (data as OAuthUserInfoRecord).platforms,
+      (data as OAuthUserInfoRecord).platform ?? data.platform ?? null
     );
     return {
-      ...(data as any),
+      ...data,
       platform: loginMethod,
       loginMethod,
     } as GetUserInfoWithJwtResponse;

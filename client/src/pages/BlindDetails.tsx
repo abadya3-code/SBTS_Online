@@ -19,6 +19,7 @@ import { useLocation } from "wouter";
 import { PageHeader } from "@/components/common/PageHeader";
 import { QRCodeBlock, buildBlindQrValue } from "@/components/common/QRCodeBlock";
 import { trpc } from "@/lib/trpc";
+import type { ApprovalProfileConfig } from "@/types/operationalModels";
 import { toast } from "sonner";
 import { readAuthSession } from "@/lib/auth";
 
@@ -286,9 +287,9 @@ export default function BlindDetails() {
       : parseAuthorized(selectedAssignment?.authorizedSignatures ?? "");
   const authorizedPeople = authorizedSignatureList.map(badge => employeeByBadge(badge, employeeDirectory)).filter(Boolean) as AuthorizedEmployee[];
   const finalApprovalProfile = useMemo(() => {
-    const profiles = (settingsQuery.data as any)?.approvals?.profiles ?? [];
+    const profiles: ApprovalProfileConfig[] = settingsQuery.data?.approvals?.profiles ?? [];
     const type = String(blind?.blindType ?? "").toLowerCase();
-    return profiles.find((profile: any) => type.includes(String(profile.blindType).toLowerCase())) ?? profiles.find((profile: any) => String(profile.blindType).toLowerCase() === "blind");
+    return profiles.find((profile) => type.includes(String(profile.blindType).toLowerCase())) ?? profiles.find((profile) => String(profile.blindType).toLowerCase() === "blind");
   }, [settingsQuery.data, blind?.blindType]);
 
   const actorOptions = useMemo(() => {

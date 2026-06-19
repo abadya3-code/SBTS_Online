@@ -3498,7 +3498,7 @@ export async function getProjectsCore(): Promise<ProjectModel[]> {
         .length,
       startDate: toDateString(project.startDate),
       targetDate: toDateString(project.targetDate),
-      maintenanceReason: (project as any).maintenanceReason ?? null,
+      maintenanceReason: project.maintenanceReason ?? null,
     };
   });
 }
