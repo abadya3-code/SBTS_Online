@@ -1,0 +1,1 @@
+ALTER TABLE `production_persistence_events` ADD `priority` varchar(32) DEFAULT 'normal' NOT NULL;

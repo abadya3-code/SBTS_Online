@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "3e867b3b-3e46-49db-b129-cc6130f7c65b",
-  "prevId": "61eda900-a4ff-4f25-acb3-2cfd0590682b",
+  "id": "b856a1ad-7422-4e3c-829d-b0ae9db9ada5",
+  "prevId": "3e867b3b-3e46-49db-b129-cc6130f7c65b",
   "tables": {
     "access_permissions": {
       "name": "access_permissions",
@@ -1758,6 +1758,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'Info'"
+        },
+        "priority": {
+          "name": "priority",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'normal'"
         },
         "summary": {
           "name": "summary",
